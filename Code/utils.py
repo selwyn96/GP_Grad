@@ -1,0 +1,160 @@
+
+from acq_functions import acq_functions
+from scipy.optimize import minimize
+import numpy as np
+from mpl_toolkits.mplot3d import axes3d
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+import functions
+
+
+def optimise_acq_func(model,bounds,y_max,sample_count,acq_name="PI"):
+    acq_object =acq_functions(acq_name,bounds,sample_count)
+    x_max_val = acq_maximize(model,acq_object.acq_val,bounds,y_max)
+    return x_max_val
+
+# Optimizing the simple acq functions in acq_functions.py
+def acq_maximize(gp,acq,bounds,y_max):
+    x_tries = np.random.uniform(bounds[:, 0],bounds[:, 1],size=(1000, bounds.shape[0]))
+    ys = acq(gp,x_tries,y_max)
+    x_max = x_tries[np.random.choice(np.where(ys == ys.max())[0])]
+    max_acq = ys.max()
+        
+    # Explore the parameter space more throughly
+    x_seeds = np.random.uniform(bounds[:, 0],bounds[:, 1],size=(10, bounds.shape[0]))
+    for x_try in x_seeds:
+        res = minimize(lambda x: -acq(gp,x.reshape(1, -1),y_max),x_try.reshape(1, -1),bounds=bounds,method="L-BFGS-B")
+        if not res.success:
+            continue
+        if max_acq is None or -res.fun[0] >= max_acq:
+            x_max = res.x
+            max_acq = -res.fun[0]
+    return np.clip(x_max, bounds[:, 0],bounds[:, 1])
+    
+def unique_rows(a):
+    """
+    A functions to trim repeated rows that may appear when optimizing.
+    This is necessary to avoid the sklearn GP object from breaking
+    :param a: array to trim repeated rows from
+    :return: mask of unique rows
+    """
+    # Sort array and kep track of where things should go back to
+    order = np.lexsort(a.T)
+    reorder = np.argsort(order)
+
+    a = a[order]
+    diff = np.diff(a, axis=0)
+    ui = np.ones(len(a), 'bool')
+    ui[1:] = (diff != 0).any(axis=1)
+
+    return ui[reorder]
+
+''' def plot_posterior_grad(bounds,gp,count):
+    noise='Noisy'
+    t = np.linspace(-1, 15, 1000)
+    objective=functions.cos()
+    y=objective.func(t)
+    mu, y_var = gp.predict(t[:, np.newaxis])
+    std=np.sqrt(y_var)
+    mu=np.squeeze(mu)
+    std=np.squeeze(std)
+    std = std.clip(min=0)
+    fig,(ax1)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
+    plt.title(noise)
+    plt.ylabel('Derivative Value')
+    plt.xlabel('Input')
+    ax1.plot(t, mu, label='Mean')
+    ax1.fill_between(t, mu-1.96*std, mu+1.96*std, color='red', alpha=0.15)
+    ax1.plot(t,y, 'b--',label='True value')
+    ax1.legend(loc='lower right', frameon=False)
+    filename = 'Derivative_'+str(count)+'_'+noise+'.png'
+    plt.savefig('Plots/'+filename)
+  #  plt.show()
+
+    def plot_posterior(bounds,gp,X,Y,count):
+    noise='Noisy' # Noisy or Noiseless
+    t = np.linspace(-1, 15, 1000)
+    objective=functions.sin(noisy=False)
+    y=objective.func(t)
+    mu, y_var = gp.predict(t[:, np.newaxis])
+    std=np.sqrt(y_var)
+    mu=np.squeeze(mu)
+    std=np.squeeze(std)
+    fig,(ax1)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
+    plt.title(noise)
+    plt.ylabel('Function Value')
+    plt.xlabel('Input')
+    ax1.plot(t, mu,label='Mean')
+    ax1.fill_between(t, mu-2*std, mu+2*std, color='red', alpha=0.15)
+    ax1.plot(X, Y, 'ko', linewidth=2)
+    ax1.plot(t,y, 'b--',label='True value')
+    ax1.legend(loc='lower right', frameon=False)
+    filename = 'Function_'+str(count)+'_'+noise+'.png'
+  #  plt.savefig('Plots/'+filename)
+ #   plt.show() '''
+
+def plot_posterior_grad(bounds,gp,count):
+    noise='Noisy'
+    x1 = np.linspace(-4,4,100)
+    x2 = np.linspace(-4,4,100)
+    X1, X2  = np.meshgrid(x1,x2)
+    t= np.vstack((X1.flatten(), X2.flatten())).T
+    objective=functions.Kean()
+    y=objective.func(t)
+    Ex,Ey=np.gradient(y.reshape(X1.shape))
+    mu, y_var = gp.predict(t)
+    std=np.sqrt(y_var)
+    mu=np.squeeze(mu)
+    std=np.squeeze(std)
+    std = std.clip(min=0)
+    fig,(ax1)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
+    ax1.contour(X1, X2, mu.reshape(X1.shape),colors='blue')
+   # ax1.contour(X1, X2, Ex,colors='red')
+    plt.show()
+    fig,(ax2)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
+    im=ax2.pcolormesh(X1, X2, std.reshape(X1.shape),cmap='jet')
+    fig.colorbar(im, ax=ax2)
+    plt.show()
+    
+    
+  #  ax1.plot_wireframe(X1, X2, mu.reshape(X1.shape))
+   # ax1.plot_wireframe(X1, X2,Ex,color='r')
+    
+
+def plot_posterior(bounds,gp,X,Y,count):
+    noise='Noisless' # Noisy or Noiseless
+    x1 = np.linspace(-4,4,100)
+    x2 = np.linspace(-4,4,100)
+    X1, X2  = np.meshgrid(x1,x2)
+    t= np.vstack((X1.flatten(), X2.flatten())).T
+    objective=functions.Kean()
+    y=objective.func(t)
+    mu, y_var = gp.predict(t)
+    std=np.sqrt(y_var)
+    mu=np.squeeze(mu)
+    std=np.squeeze(std)
+    fig = plt.figure(figsize=(13, 7))
+    ax1=fig.add_subplot(111, projection='3d')
+    plt.title(noise)
+    Ex,Ey=np.gradient(y.reshape(X1.shape))
+  #  ax1.plot_surface(X1, X2, mu.reshape(X1.shape),cstride=1,
+  #              cmap='viridis', edgecolor='none')
+  #  ax1.scatter(X[:,0],X[:,1], Y, 'ko', linewidth=2,cmap='Reds')
+    ax1.plot_wireframe(X1, X2,Ex,color='r')
+    
+    plt.show()
+  #  ax1.fill_between(t, mu-2*std, mu+2*std, color='red', alpha=0.15)
+  #  filename = 'Function_'+str(count)+'_'+noise+'.png'
+  #  plt.savefig('Plots/'+filename)
+
+
+
+
+
+
+    
+
+    
+
+
