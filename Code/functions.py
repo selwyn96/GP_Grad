@@ -322,6 +322,22 @@ class cos:
         fval=np.cos(x)
         return fval
 
+class sincos:
+    def __init__(self):
+        self.input_dim=2
+        self.bounds={'x': (-4, 4), 'y': (-4,4 )}
+        self.name='sinxy'
+    def func(self,coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+        X1=coord[:,0]
+        X2=coord[:,1]
+        n=coord.shape[0]
+        noise = np.random.normal(0,0.05,n).reshape(n,1)
+        out =   X1*X2*np.cos(X1)*np.sin(X2)+noise
+        out=np.squeeze(out)
+        return out 
+
 
 
 

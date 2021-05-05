@@ -73,13 +73,13 @@ class GP_action:
         #  if  len(self.Y)%(3)==0:
        #        self.gp.optimise()
           variance,lenghtscale=self.gp.Hyper()
-          gp_grad=GaussianProcess_grad(self.bounds,verbose=self.verbose)
-          gp_grad.set_hyper(lenghtscale,variance)
-          gp_grad.fit(self.X[ur], self.Y[ur])
-          gp2=GaussianProcess(self.bounds,verbose=self.verbose)
-          gp2.fit(self.X[ur], self.Y[ur])
-       #   plot_posterior(self.bounds,gp2,self.X,self.Y,self.count) 
-          plot_posterior_grad(self.bounds,gp_grad,self.count)
+          gp_grad_0=GaussianProcess_grad(self.bounds,D=0,verbose=self.verbose)
+          gp_grad_1=GaussianProcess_grad(self.bounds,D=1,verbose=self.verbose)
+          gp_grad_0.set_hyper(lenghtscale,variance)
+          gp_grad_1.set_hyper(lenghtscale,variance)
+          gp_grad_0.fit(self.X[ur], self.Y[ur])
+          gp_grad_1.fit(self.X[ur], self.Y[ur])
+          plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.count)
 
           y_max=max(self.Y_S)
           no_val_samp=len(self.Y_S) # For gpucb Beta 

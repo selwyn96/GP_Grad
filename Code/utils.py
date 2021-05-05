@@ -5,7 +5,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import axes3d
 import matplotlib.pyplot as plt
 from matplotlib import cm
-
+import seaborn as sns
 import functions
 
 
@@ -94,32 +94,52 @@ def unique_rows(a):
   #  plt.savefig('Plots/'+filename)
  #   plt.show() '''
 
-def plot_posterior_grad(bounds,gp,count):
+def plot_posterior_grad(bounds,gp_0,gp_1,count):
     noise='Noisy'
     x1 = np.linspace(-4,4,100)
     x2 = np.linspace(-4,4,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Kean()
-    y=objective.func(t)
-    Ex,Ey=np.gradient(y.reshape(X1.shape))
-    mu, y_var = gp.predict(t)
-    std=np.sqrt(y_var)
-    mu=np.squeeze(mu)
-    std=np.squeeze(std)
-    std = std.clip(min=0)
-    fig,(ax1)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
-    ax1.contour(X1, X2, mu.reshape(X1.shape),colors='blue')
-   # ax1.contour(X1, X2, Ex,colors='red')
-    plt.show()
-    fig,(ax2)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
-    im=ax2.pcolormesh(X1, X2, std.reshape(X1.shape),cmap='jet')
+ #   Ex,Ey=np.gradient(y.reshape(X1.shape))
+    mu_0, y_var_0 = gp_0.predict(t)
+    mu_1, y_var_1 = gp_1.predict(t)
+
+    std_0=np.sqrt(y_var_0)
+    mu_0=np.squeeze(mu_0)
+    std_0=np.squeeze(std_0)
+    std_0 = std_0.clip(min=0)
+
+    std_1=np.sqrt(y_var_1)
+    mu_1=np.squeeze(mu_1)
+    std_1=np.squeeze(std_1)
+    std_1 = std_1.clip(min=0)
+
+    
+
+    out_0=t[:,1]*np.sin(t[:,1])*(np.cos(t[:,0])-t[:,0]*np.sin(t[:,0]))
+    out_1=t[:,0]*np.cos(t[:,0])*(np.sin(t[:,1])-t[:,1]*np.cos(t[:,1]))
+
+    fig,((ax1,ax2),(ax3, ax4))=plt.subplots(nrows=2, ncols=2, figsize=(12, 6), dpi=100)
+    im=ax2.pcolormesh(X1, X2, std_0.reshape(X1.shape),cmap='jet')
     fig.colorbar(im, ax=ax2)
+    im1=ax1.contour(X1, X2, out_0.reshape(X1.shape),cmap='PuBuGn')
+    im2=ax1.contour(X1, X2, mu_0.reshape(X1.shape),cmap='YlOrRd')
+    fig.colorbar(im1, ax=ax1)
+    fig.colorbar(im2, ax=ax1)
+    ax1.title.set_text('Contour Plot of Mean D=0 (Noisy)')
+    ax2.title.set_text('Standard deviation')
+
+    im3=ax4.pcolormesh(X1, X2, std_1.reshape(X1.shape),cmap='jet')
+    fig.colorbar(im3, ax=ax4)
+    im4=ax3.contour(X1, X2, out_1.reshape(X1.shape),cmap='PuBuGn')
+    im5=ax3.contour(X1, X2, mu_1.reshape(X1.shape),cmap='YlOrRd')
+    fig.colorbar(im4, ax=ax3)
+    fig.colorbar(im5, ax=ax3)
+    ax3.title.set_text('Contour Plot of Mean D=1')
+    ax4.title.set_text('Standard deviation')
+    filename = 'xySinCos_'+str(count)+'_'+noise+'.png'
+    plt.savefig('2D_Plots/'+filename)
     plt.show()
-    
-    
-  #  ax1.plot_wireframe(X1, X2, mu.reshape(X1.shape))
-   # ax1.plot_wireframe(X1, X2,Ex,color='r')
     
 
 def plot_posterior(bounds,gp,X,Y,count):
