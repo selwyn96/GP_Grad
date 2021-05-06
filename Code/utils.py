@@ -116,8 +116,8 @@ def plot_posterior_grad(bounds,gp_0,gp_1,count):
 
     
 
-    out_0=t[:,1]*np.sin(t[:,1])*(np.cos(t[:,0])-t[:,0]*np.sin(t[:,0]))
-    out_1=t[:,0]*np.cos(t[:,0])*(np.sin(t[:,1])-t[:,1]*np.cos(t[:,1]))
+    out_0=np.cos(t[:,1])*np.cos(t[:,0])
+    out_1=-np.sin(t[:,1])*np.sin(t[:,0])
 
     fig,((ax1,ax2),(ax3, ax4))=plt.subplots(nrows=2, ncols=2, figsize=(12, 6), dpi=100)
     im=ax2.pcolormesh(X1, X2, std_0.reshape(X1.shape),cmap='jet')
@@ -137,7 +137,7 @@ def plot_posterior_grad(bounds,gp_0,gp_1,count):
     fig.colorbar(im5, ax=ax3)
     ax3.title.set_text('Contour Plot of Mean D=1')
     ax4.title.set_text('Standard deviation')
-    filename = 'xySinCos_'+str(count)+'_'+noise+'.png'
+    filename = 'SinCos_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     

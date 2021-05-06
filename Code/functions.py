@@ -23,6 +23,8 @@ def synthetic_input():
     return X,Y
 
 
+
+
 class Kean:
     def __init__(self):
         self.input_dim=2
@@ -327,16 +329,47 @@ class sincos:
         self.input_dim=2
         self.bounds={'x': (-4, 4), 'y': (-4,4 )}
         self.name='sinxy'
+    def findSdev(self):
+        num_points_per_dim=100
+        bounds=self.bounds
+        if isinstance(bounds,dict):
+            # Get the name of the parameters
+            keys = bounds.keys()
+            arr_bounds = []
+            for key in keys:
+                arr_bounds.append(bounds[key])
+            arr_bounds = np.asarray(arr_bounds)
+        else:
+            arr_bounds=np.asarray(bounds)
+        X=np.array([np.random.uniform(x[0], x[1], size=num_points_per_dim) for x in arr_bounds])
+        X=X.reshape(num_points_per_dim,-1)
+        y=self.func_noisless(X)
+        sdv=np.std(y)
+        return sdv
+
     def func(self,coord):
         if(coord.ndim==1):
             coord=coord[np.newaxis,:]
         X1=coord[:,0]
         X2=coord[:,1]
         n=coord.shape[0]
-        noise = np.random.normal(0,0.05,n).reshape(n,1)
-        out =   X1*X2*np.cos(X1)*np.sin(X2)+noise
+        std=0.1*self.findSdev()
+        noise = np.random.normal(0,std,n).reshape(n,1)
+        out =  np.sin(X1)*np.cos(X2)+noise
+        out=np.squeeze(out)
+        return out
+
+    def func_noisless(self,coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+        X1=coord[:,0]
+        X2=coord[:,1]
+        n=coord.shape[0]
+        out =   np.sin(X1)*np.cos(X2)
         out=np.squeeze(out)
         return out 
+    
+    
 
 
 
