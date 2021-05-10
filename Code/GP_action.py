@@ -31,22 +31,31 @@ def unique_rows(a):
 
 class GP_action:
      def __init__(self, func,bounds, acq_name,device='cuda',verbose=1):
+          """
+          We use the X and Y in original scale for gp_grad since we need to compare plots for the test situation. 
+          we use scaled values of X and Y for creating the gp over observations converges faster to an optimum
+          When we run a acq function using Gradient descent we could possible use the scaled values
+           """
           self.X = None # The sampled point in original domain
           self.Y = None  # original output
-          self.X_S=None   # scaled output (The input  is scaled [0,1] in all D)
+          self.X_S=None   # scaled output (The input  is scaled [0,1] in all D) 
           self.Y_S=None   # scaled inpout ( output is scaled as  (Y - mu) / sigma )
-          self.bounds=bounds
-          self.dim = len(bounds) # original bounds
+          self.bounds=bounds # original bounds
+          self.dim = len(bounds)
           self.bounds_s=np.array([np.zeros(self.dim), np.ones(self.dim)]).T  # scaled bounds
           self.func = func
           self.acq_name = acq_name
-          scaler = MinMaxScaler()  # Tranform for moving from orignal to scaled vales
+          scaler = MinMaxScaler()  # Tranform from orignal to scaled vales
           scaler.fit(self.bounds.T)
           self.Xscaler=scaler
           self.verbose=verbose
-          self.gp=GaussianProcess(self.bounds_s,verbose=verbose)
+       #   self.gp=GaussianProcess(self.bounds_s,verbose=verbose) # GP over observed values
           self.time_opt=0
-          self.count=0 #keeps a count of no of times the function is called
+          self.count=0 # keeps a count of no of times a new value is sampled
+          self.var=1 
+          self.ls=1
+
+      
      
      def initiate(self, seed,n_random_draws=3):
 
@@ -62,28 +71,38 @@ class GP_action:
                x_s=self.Xscaler.transform(X_test[i].reshape((1, -1)))
                self.X_S = np.vstack((self.X_S, x_s))
                self.Y = np.append(self.Y, self.func(X_test[i]))
-          self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)      
+          self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
 
-     
-
+     def find_kernel(self):
+          gp_test=GaussianProcess(self.bounds,verbose=self.verbose) 
+          X_test= np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( 10000, self.bounds.shape[0]))
+          Y_try=self.func(X_test)
+          gp_test.fit(X_test, Y_try)
+          gp_test.optimise()
+          var,ls=gp_test.Hyper()
+          return(var,ls) 
+              
      def sample_new_value(self):
-          self.gp=GaussianProcess(self.bounds_s,verbose=self.verbose)
+     
+          self.gp=GaussianProcess(self.bounds_s,verbose=self.verbose) # Acq function uses this GP to estimate next point to smaple 
           ur = unique_rows(self.X_S)
           self.gp.fit(self.X_S[ur], self.Y_S[ur])
         #  if  len(self.Y)%(3)==0:
        #        self.gp.optimise()
-          variance,lenghtscale=self.gp.Hyper()
-          gp_grad_0=GaussianProcess_grad(self.bounds,D=0,verbose=self.verbose)
-          gp_grad_1=GaussianProcess_grad(self.bounds,D=1,verbose=self.verbose)
-          gp_grad_0.set_hyper(lenghtscale,variance)
-          gp_grad_1.set_hyper(lenghtscale,variance)
-          gp_grad_0.fit(self.X[ur], self.Y[ur])
+       #   self.var,self.ls= self.find_kernel() # If we need to find the approx kernel of the function
+          
+          gp_grad_0=GaussianProcess_grad(self.bounds,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
+          gp_grad_1=GaussianProcess_grad(self.bounds,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
+          gp_grad_0.set_hyper(self.ls,self.var) # setting the hyperparameters
+          gp_grad_1.set_hyper(self.ls,self.var)
+          gp_grad_0.fit(self.X[ur], self.Y[ur]) # fitting to the data which has been sampled
           gp_grad_1.fit(self.X[ur], self.Y[ur])
-          plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.count)
+          plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.count) # Creating the Plot 
 
           y_max=max(self.Y_S)
           no_val_samp=len(self.Y_S) # For gpucb Beta 
           start_opt=time.time()
+          # X_val is the new point that is sampled 
           if(self.acq_name=='random' or self.acq_name=='TS' or self.acq_name=='MES'):
                objects =methods(self.acq_name,self.bounds_s,self.gp,self.Y_S )
                x_val=objects.method_val()
@@ -106,6 +125,7 @@ class GP_action:
           self.count=self.count+1
 
           return x_val,y_actual
+
 # Function to set Hypers
      def set_ls(self,lengthscale,variance):
         self.gp.set_hyper(lengthscale,variance)

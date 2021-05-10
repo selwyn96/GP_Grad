@@ -23,8 +23,8 @@ class GaussianProcess(object):
         self.dim=SearchSpace.shape[0]
         
         self.hyper={}
-        self.hyper['var']=1 # standardise the data
-        self.hyper['lengthscale']=1 #to be optimised
+        self.hyper['var']=1 
+        self.hyper['lengthscale']=1 
         self.noise_delta=noise_delta
         return None
    
@@ -64,9 +64,9 @@ class GaussianProcess(object):
         return variance*np.exp(-np.square(Euc_dist)/2*np.square(lengthscale))
     
 
-    def log_llk(self,X,y,hyper_values):
+    def log_llk(self,X,y,hyper_values): 
         
-        #print(hyper_values)
+        # min the -ve loglk for the estimation of ls and var
         hyper={}
         hyper['var']=hyper_values[1]
         hyper['lengthscale']=hyper_values[0]

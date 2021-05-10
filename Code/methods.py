@@ -12,6 +12,7 @@ from utils import unique_rows
 from Gaussian import GaussianProcess
 
 class methods(object):
+    # Contain additional acq functions (slightly more complex ones)
 
     def __init__(self, acq_name,bounds,model,Y):
 

@@ -50,6 +50,7 @@ def unique_rows(a):
 
     return ui[reorder]
 
+# Plot creation for 1-D functions
 ''' def plot_posterior_grad(bounds,gp,count):
     noise='Noisy'
     t = np.linspace(-1, 15, 1000)
@@ -94,13 +95,16 @@ def unique_rows(a):
   #  plt.savefig('Plots/'+filename)
  #   plt.show() '''
 
+# Plot creation for 2-D functions (ploting the derivatives)
 def plot_posterior_grad(bounds,gp_0,gp_1,count):
-    noise='Noisy'
+    noise='Noisless '
+    # creating meshgrid to plot over entire range
     x1 = np.linspace(-4,4,100)
     x2 = np.linspace(-4,4,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
- #   Ex,Ey=np.gradient(y.reshape(X1.shape))
+
+    # mean and var for D=0 and D=1
     mu_0, y_var_0 = gp_0.predict(t)
     mu_1, y_var_1 = gp_1.predict(t)
 
@@ -115,10 +119,11 @@ def plot_posterior_grad(bounds,gp_0,gp_1,count):
     std_1 = std_1.clip(min=0)
 
     
-
+    # The actual partial derivative of the function (used for comparision)
     out_0=np.cos(t[:,1])*np.cos(t[:,0])
     out_1=-np.sin(t[:,1])*np.sin(t[:,0])
-
+    
+    #Ploting
     fig,((ax1,ax2),(ax3, ax4))=plt.subplots(nrows=2, ncols=2, figsize=(12, 6), dpi=100)
     im=ax2.pcolormesh(X1, X2, std_0.reshape(X1.shape),cmap='jet')
     fig.colorbar(im, ax=ax2)
@@ -137,6 +142,7 @@ def plot_posterior_grad(bounds,gp_0,gp_1,count):
     fig.colorbar(im5, ax=ax3)
     ax3.title.set_text('Contour Plot of Mean D=1')
     ax4.title.set_text('Standard deviation')
+    # Saving all the plots in 2D_Plots (need to creat a folder) 
     filename = 'SinCos_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()

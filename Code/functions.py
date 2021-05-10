@@ -328,8 +328,9 @@ class sincos:
     def __init__(self):
         self.input_dim=2
         self.bounds={'x': (-4, 4), 'y': (-4,4 )}
-        self.name='sinxy'
-    def findSdev(self):
+        self.name='sincos'
+
+    def findSdev(self): # Calcultes the std of the function (we use 0.05*std for the noise STD)
         num_points_per_dim=100
         bounds=self.bounds
         if isinstance(bounds,dict):
@@ -347,14 +348,17 @@ class sincos:
         sdv=np.std(y)
         return sdv
 
-    def func(self,coord):
+    def func(self,coord,noise=False):
+        noise=noise
         if(coord.ndim==1):
             coord=coord[np.newaxis,:]
         X1=coord[:,0]
         X2=coord[:,1]
         n=coord.shape[0]
-        std=0.1*self.findSdev()
-        noise = np.random.normal(0,std,n).reshape(n,1)
+        std=0.05*self.findSdev()
+        noise=0
+        if noise==True:
+            noise = np.random.normal(0,std,n).reshape(n,1)
         out =  np.sin(X1)*np.cos(X2)+noise
         out=np.squeeze(out)
         return out

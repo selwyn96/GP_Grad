@@ -15,9 +15,9 @@ class GaussianProcess_grad(object):
     def __init__ (self,SearchSpace,D=0,noise_delta=1e-4,verbose=0):
         self.noise_delta=noise_delta
         self.noise_upperbound=noise_delta
-        self.mycov=self.cov_RBF
-        self.mycov_11=self.cov_11
-        self.mycov_01=self.cov_01
+        self.mycov=self.cov_RBF 
+        self.mycov_11=self.cov_11 # Covariance between two partial derivatives
+        self.mycov_01=self.cov_01 # Covariance between and observation and partial derivatives
         self.SearchSpace=SearchSpace
         scaler = MinMaxScaler()
         scaler.fit(SearchSpace.T)
@@ -41,7 +41,7 @@ class GaussianProcess_grad(object):
         """       
         #self.X= self.Xscaler.transform(X) #this is the normalised data [0-1] in each column
         self.X=X
-        self.Y=Y # this is the standardised output N(0,1)
+        self.Y=Y 
         
         if IsOptimize:
             self.hyper['lengthscale']=self.optimise()[0]         # optimise GP hyperparameters
@@ -68,7 +68,7 @@ class GaussianProcess_grad(object):
 
     def cov_11(self,x1, x2,hyper):        
         """
-        Radial Basic function kernel (or SE kernel)
+        Check the notes for the expression
         """
         variance=hyper['var']
         lengthscale=hyper['lengthscale']
@@ -85,7 +85,7 @@ class GaussianProcess_grad(object):
     
     def cov_01(self,x1, x2,hyper):        
         """
-        Radial Basic function kernel (or SE kernel)
+        Check the notes for the expression
         """
         variance=hyper['var']
         lengthscale=hyper['lengthscale']
@@ -161,14 +161,6 @@ class GaussianProcess_grad(object):
         std=np.reshape(np.diag(var),(-1,1))
         return  np.reshape(mean,(-1,1)),std 
 
-
-   #     mean=np.dot(KK_xTest_x,self.alpha)
-   #     v=np.linalg.solve(self.L,KK_xTest_x.T)
-    #    var=KK_xTest_xTest-np.dot(v.T,v)
-    #    std=np.reshape(np.diag(var),(-1,1))
-    #    return  np.reshape(mean,(-1,1)),std 
-
-        
    
    # sampling a point from the posterior
     def sample(self,X,size):
