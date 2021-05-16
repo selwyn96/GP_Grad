@@ -3,7 +3,7 @@ import torch
 from sklearn.preprocessing import MinMaxScaler
 from methods import methods
 import numpy as np
-from  utils import optimise_acq_func,acq_maximize,plot_posterior,plot_posterior_grad
+from  utils import optimise_acq_func,acq_maximize,plot_posterior,plot_posterior_grad,plot_posterior_1d,plot_posterior_grad_1d
 from Gaussian import GaussianProcess
 from Gaussian_grad import GaussianProcess_grad
 from methods import methods
@@ -30,7 +30,7 @@ def unique_rows(a):
 
 
 class GP_action:
-     def __init__(self, func,bounds, acq_name,device='cuda',verbose=1):
+     def __init__(self, func,bounds,Noise,Noise_level, acq_name,device='cuda',verbose=1):
           """
           We use the X and Y in original scale for gp_grad since we need to compare plots for the test situation. 
           we use scaled values of X and Y for creating the gp over observations converges faster to an optimum
@@ -54,6 +54,8 @@ class GP_action:
           self.count=0 # keeps a count of no of times a new value is sampled
           self.var=1 
           self.ls=1
+          self.Noise=Noise
+          self.Noise_level=Noise_level
 
       
      
@@ -74,7 +76,7 @@ class GP_action:
           self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
 
      def find_kernel(self):
-          gp_test=GaussianProcess(self.bounds,verbose=self.verbose) 
+          gp_test=GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose) 
           X_test= np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( 10000, self.bounds.shape[0]))
           Y_try=self.func(X_test)
           gp_test.fit(X_test, Y_try)
@@ -84,20 +86,25 @@ class GP_action:
               
      def sample_new_value(self):
      
-          self.gp=GaussianProcess(self.bounds_s,verbose=self.verbose) # Acq function uses this GP to estimate next point to smaple 
+          self.gp=GaussianProcess(self.bounds_s,self.Noise, self.Noise_level,verbose=self.verbose) # Acq function uses this GP to estimate next point to smaple 
           ur = unique_rows(self.X_S)
           self.gp.fit(self.X_S[ur], self.Y_S[ur])
         #  if  len(self.Y)%(3)==0:
        #        self.gp.optimise()
        #   self.var,self.ls= self.find_kernel() # If we need to find the approx kernel of the function
           
-          gp_grad_0=GaussianProcess_grad(self.bounds,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
-          gp_grad_1=GaussianProcess_grad(self.bounds,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
+          gp_grad_0=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
+      #    gp_grad_1=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
           gp_grad_0.set_hyper(self.ls,self.var) # setting the hyperparameters
-          gp_grad_1.set_hyper(self.ls,self.var)
+      #    gp_grad_1.set_hyper(self.ls,self.var)
           gp_grad_0.fit(self.X[ur], self.Y[ur]) # fitting to the data which has been sampled
-          gp_grad_1.fit(self.X[ur], self.Y[ur])
-          plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.count) # Creating the Plot 
+     #     gp_grad_1.fit(self.X[ur], self.Y[ur])
+    #      plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.X,self.Y,self.Noise,self.count) # Creating the Plot 
+
+          gp_test= GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose)
+          gp_test.fit(self.X, self.Y)
+          plot_posterior_1d(self.bounds,gp_test,self.X, self.Y,self.Noise,self.count)
+          plot_posterior_grad_1d(self.bounds,gp_grad_0,self.X, self.Y,self.Noise,self.count)
 
           y_max=max(self.Y_S)
           no_val_samp=len(self.Y_S) # For gpucb Beta 

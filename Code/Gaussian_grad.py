@@ -12,7 +12,7 @@ import matplotlib.cm as cm
 from scipy.linalg import block_diag
 from numpy.linalg import inv
 class GaussianProcess_grad(object):
-    def __init__ (self,SearchSpace,D=0,noise_delta=1e-4,verbose=0):
+    def __init__ (self,SearchSpace,Noise=False,noise_delta=1e-4,D=0,verbose=0):
         self.noise_delta=noise_delta
         self.noise_upperbound=noise_delta
         self.mycov=self.cov_RBF 
@@ -29,7 +29,10 @@ class GaussianProcess_grad(object):
         self.hyper={}
         self.hyper['var']=1 # standardise the data
         self.hyper['lengthscale']=1 #to be optimised
-        self.noise_delta=noise_delta
+        if(Noise==True) :
+            self.noise_delta=noise_delta
+        else:
+            self.noise_delta=1e-4
         return None
    
         

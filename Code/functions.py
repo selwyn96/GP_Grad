@@ -298,17 +298,17 @@ class Shekel:
         return(outer)
 
 class sin:
-    def __init__(self,noisy=True):
+    def __init__(self,noise=True,noise_std=0):
         self.input_dim=1
         self.bounds={'x':(-1,15)}
         #self.bounds={'x':(0,1)}
         self.name='sin'
-        self.noisy=noisy
-        self.noise_std=0.05
+        self.noise=noise
+        self.noise_std=noise_std
     def func(self,coord):
         x=np.asarray(coord)
         fval=np.sin(x)
-        if self.noisy:
+        if self.noise:
             return fval + np.random.normal(0, self.noise_std, size=(x.shape[0], ))
         else:
             return fval
@@ -325,10 +325,12 @@ class cos:
         return fval
 
 class sincos:
-    def __init__(self):
+    def __init__(self,noise=False,noise_std=0):
         self.input_dim=2
-        self.bounds={'x': (-4, 4), 'y': (-4,4 )}
+        self.bounds={'x': (2,10 ), 'y': (2,10)}
         self.name='sincos'
+        self.noise=noise
+        self.noise_std=noise_std
 
     def findSdev(self): # Calcultes the std of the function (we use 0.05*std for the noise STD)
         num_points_per_dim=100
@@ -348,18 +350,17 @@ class sincos:
         sdv=np.std(y)
         return sdv
 
-    def func(self,coord,noise=False):
-        noise=noise
+    def func(self,coord):
         if(coord.ndim==1):
             coord=coord[np.newaxis,:]
         X1=coord[:,0]
         X2=coord[:,1]
         n=coord.shape[0]
-        std=0.05*self.findSdev()
-        noise=0
-        if noise==True:
-            noise = np.random.normal(0,std,n).reshape(n,1)
-        out =  np.sin(X1)*np.cos(X2)+noise
+      #  std=0.05*self.findSdev()
+        noise_val=0
+        if self.noise==True:
+            noise_val = np.random.normal(0,self.noise_std,n).reshape(n,1)
+        out = ((np.sin(X1)*np.sin(X2))/np.sqrt(X1*X2))+noise_val
         out=np.squeeze(out)
         return out
 

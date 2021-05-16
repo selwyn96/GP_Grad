@@ -51,8 +51,11 @@ def unique_rows(a):
     return ui[reorder]
 
 # Plot creation for 1-D functions
-''' def plot_posterior_grad(bounds,gp,count):
-    noise='Noisy'
+def plot_posterior_grad_1d(bounds,gp,X,Y,noise_val,count):
+    if noise_val==True:
+      noise='Noisy '
+    else:
+      noise='Noisless'
     t = np.linspace(-1, 15, 1000)
     objective=functions.cos()
     y=objective.func(t)
@@ -67,16 +70,20 @@ def unique_rows(a):
     plt.xlabel('Input')
     ax1.plot(t, mu, label='Mean')
     ax1.fill_between(t, mu-1.96*std, mu+1.96*std, color='red', alpha=0.15)
+    ax1.plot(X, Y, 'ko', linewidth=2)
     ax1.plot(t,y, 'b--',label='True value')
     ax1.legend(loc='lower right', frameon=False)
     filename = 'Derivative_'+str(count)+'_'+noise+'.png'
     plt.savefig('Plots/'+filename)
-  #  plt.show()
+    plt.show()
 
-    def plot_posterior(bounds,gp,X,Y,count):
-    noise='Noisy' # Noisy or Noiseless
+def plot_posterior_1d(bounds,gp,X,Y,noise_val,count):
+    if noise_val==True:
+      noise='Noisy '
+    else:
+      noise='Noisless'
     t = np.linspace(-1, 15, 1000)
-    objective=functions.sin(noisy=False)
+    objective=functions.sin()
     y=objective.func(t)
     mu, y_var = gp.predict(t[:, np.newaxis])
     std=np.sqrt(y_var)
@@ -92,15 +99,18 @@ def unique_rows(a):
     ax1.plot(t,y, 'b--',label='True value')
     ax1.legend(loc='lower right', frameon=False)
     filename = 'Function_'+str(count)+'_'+noise+'.png'
-  #  plt.savefig('Plots/'+filename)
- #   plt.show() '''
+    plt.savefig('Plots/'+filename)
+    plt.show()  
 
 # Plot creation for 2-D functions (ploting the derivatives)
-def plot_posterior_grad(bounds,gp_0,gp_1,count):
-    noise='Noisless '
+def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
+    if noise_val==True:
+      noise='Noisy '
+    else:
+      noise='Noisless'
     # creating meshgrid to plot over entire range
-    x1 = np.linspace(-4,4,100)
-    x2 = np.linspace(-4,4,100)
+    x1 = np.linspace(2,10,100)
+    x2 = np.linspace(2,10,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
 
@@ -120,9 +130,14 @@ def plot_posterior_grad(bounds,gp_0,gp_1,count):
 
     
     # The actual partial derivative of the function (used for comparision)
-    out_0=np.cos(t[:,1])*np.cos(t[:,0])
-    out_1=-np.sin(t[:,1])*np.sin(t[:,0])
-    
+  #  out_0=np.cos(t[:,1])*np.cos(t[:,0])
+  #  out_1=-np.sin(t[:,1])*np.sin(t[:,0])
+  #  out_0=t[:,1]*np.cos(t[:,1])*(np.sin(t[:,0])+t[:,0]*np.cos(t[:,0]))
+  #  out_1=t[:,0]*np.sin(t[:,0])*(np.cos(t[:,1])-t[:,1]*np.sin(t[:,1]))
+    out_0=(np.sin(t[:,1])*(2*t[:,0]*np.cos(t[:,0])-np.sin(t[:,0])))/(2*t[:,0]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
+    out_1=(np.sin(t[:,0])*(2*t[:,1]*np.cos(t[:,1])-np.sin(t[:,1])))/(2*t[:,1]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
+    """ Define the Derivative function above yourself, looking into creating a function to calculate
+    this"""
     #Ploting
     fig,((ax1,ax2),(ax3, ax4))=plt.subplots(nrows=2, ncols=2, figsize=(12, 6), dpi=100)
     im=ax2.pcolormesh(X1, X2, std_0.reshape(X1.shape),cmap='jet')
@@ -131,7 +146,8 @@ def plot_posterior_grad(bounds,gp_0,gp_1,count):
     im2=ax1.contour(X1, X2, mu_0.reshape(X1.shape),cmap='YlOrRd')
     fig.colorbar(im1, ax=ax1)
     fig.colorbar(im2, ax=ax1)
-    ax1.title.set_text('Contour Plot of Mean D=0 (Noisy)')
+    ax1.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
+    ax1.title.set_text('Contour Plot of Mean D=0'+' '+noise)
     ax2.title.set_text('Standard deviation')
 
     im3=ax4.pcolormesh(X1, X2, std_1.reshape(X1.shape),cmap='jet')
@@ -140,16 +156,17 @@ def plot_posterior_grad(bounds,gp_0,gp_1,count):
     im5=ax3.contour(X1, X2, mu_1.reshape(X1.shape),cmap='YlOrRd')
     fig.colorbar(im4, ax=ax3)
     fig.colorbar(im5, ax=ax3)
+    ax3.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
     ax3.title.set_text('Contour Plot of Mean D=1')
     ax4.title.set_text('Standard deviation')
     # Saving all the plots in 2D_Plots (need to creat a folder) 
-    filename = 'SinCos_'+str(count)+'_'+noise+'.png'
+    filename = 'SinxSiny_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     
 
 def plot_posterior(bounds,gp,X,Y,count):
-    noise='Noisless' # Noisy or Noiseless
+    noise='Noisy' # Noisy or Noiseless
     x1 = np.linspace(-4,4,100)
     x2 = np.linspace(-4,4,100)
     X1, X2  = np.meshgrid(x1,x2)
@@ -169,10 +186,10 @@ def plot_posterior(bounds,gp,X,Y,count):
   #  ax1.scatter(X[:,0],X[:,1], Y, 'ko', linewidth=2,cmap='Reds')
     ax1.plot_wireframe(X1, X2,Ex,color='r')
     
-    plt.show()
+    plt.show() 
   #  ax1.fill_between(t, mu-2*std, mu+2*std, color='red', alpha=0.15)
   #  filename = 'Function_'+str(count)+'_'+noise+'.png'
-  #  plt.savefig('Plots/'+filename)
+  #  plt.savefig('Plots/'+filename) 
 
 
 
