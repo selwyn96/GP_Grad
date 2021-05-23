@@ -79,7 +79,8 @@ class GaussianProcess_grad(object):
         if x1.shape[1]!=x2.shape[1]:
             x1=np.reshape(x1,(-1,x2.shape[1]))
         Euc_dist=euclidean_distances(x1,x2)
-        Euc_dist_2=np.squeeze(np.array((x1[:,self.D][:, np.newaxis][:, np.newaxis] - x2[:,self.D][:, np.newaxis])))
+        Euc_dist_2=np.array((x1[:,self.D][:, np.newaxis] - x2[:,self.D]))
+        Euc_dist_2=np.reshape(Euc_dist_2,Euc_dist.shape)
 
         a=np.exp(-np.square(Euc_dist)/2*np.square(lengthscale))
         div= np.square(Euc_dist_2)/np.square(lengthscale)
@@ -96,8 +97,9 @@ class GaussianProcess_grad(object):
         if x1.shape[1]!=x2.shape[1]:
             x1=np.reshape(x1,(-1,x2.shape[1]))
         Euc_dist=euclidean_distances(x1,x2)
-        Euc_dist_2=np.squeeze(np.array((x1[:,self.D][:, np.newaxis][:, np.newaxis] - x2[:,self.D][:, np.newaxis])))
-
+        Euc_dist_2=np.array((x1[:,self.D][:, np.newaxis] - x2[:,self.D]))
+        Euc_dist_2=np.reshape(Euc_dist_2,Euc_dist.shape)
+        
         a=np.exp(-np.square(Euc_dist)/2*np.square(lengthscale))
         b=(variance/np.square(lengthscale))*(Euc_dist_2)
         return a*b
@@ -155,7 +157,6 @@ class GaussianProcess_grad(object):
             
         if Xtest.shape[1] != self.X.shape[1]: # different dimension
             Xtest=np.reshape(Xtest,(-1,self.X.shape[1]))
-        
         KK_xTest_xTest=self.mycov_11(Xtest,Xtest,self.hyper)+np.eye(Xtest.shape[0])*self.noise_delta
         KK_xTest_x=self.mycov_01(self.X,Xtest,self.hyper)
         temp=np.dot(KK_xTest_x.T,inv(self.KK_x_x))
@@ -163,6 +164,8 @@ class GaussianProcess_grad(object):
         var=KK_xTest_xTest-np.dot(temp,KK_xTest_x)
         std=np.reshape(np.diag(var),(-1,1))
         return  np.reshape(mean,(-1,1)),std 
+
+        
 
    
    # sampling a point from the posterior
@@ -174,5 +177,17 @@ class GaussianProcess_grad(object):
         return sim_one_dim(m.flatten(), v)[:, np.newaxis, :]
     
     # Returns the covariance matrix
-    def covar(self,X):
-        return(self.mycov(X,X,self.hyper))
+    def covar(self,Xtest):
+        """
+        Returns Covariance matrix
+        """    
+        if len(Xtest.shape)==1: # 1d
+            Xtest=np.reshape(Xtest,(-1,self.X.shape[1]))
+            
+        if Xtest.shape[1] != self.X.shape[1]: # different dimension
+            Xtest=np.reshape(Xtest,(-1,self.X.shape[1]))
+        KK_xTest_xTest=self.mycov_11(Xtest,Xtest,self.hyper)+np.eye(Xtest.shape[0])*self.noise_delta
+        KK_xTest_x=self.mycov_01(self.X,Xtest,self.hyper)
+        temp=np.dot(KK_xTest_x.T,inv(self.KK_x_x))
+        var=KK_xTest_xTest-np.dot(temp,KK_xTest_x)
+        return  var

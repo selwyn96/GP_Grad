@@ -50,14 +50,23 @@ def unique_rows(a):
 
     return ui[reorder]
 
+class Momentum(object):
+    def __init__ (self):
+      self.momentum=0
+    def save_moment(self,momentum):
+      self.momentum=momentum
+    def return_moment(self):
+      return(self.momentum)
+      
+
 # Plot creation for 1-D functions
 def plot_posterior_grad_1d(bounds,gp,X,Y,noise_val,count):
     if noise_val==True:
       noise='Noisy '
     else:
       noise='Noisless'
-    t = np.linspace(-1, 15, 1000)
-    objective=functions.cos()
+    t = np.linspace(2, 8, 1000)
+    objective=functions.cos_2()
     y=objective.func(t)
     mu, y_var = gp.predict(t[:, np.newaxis])
     std=np.sqrt(y_var)
@@ -73,7 +82,7 @@ def plot_posterior_grad_1d(bounds,gp,X,Y,noise_val,count):
     ax1.plot(X, Y, 'ko', linewidth=2)
     ax1.plot(t,y, 'b--',label='True value')
     ax1.legend(loc='lower right', frameon=False)
-    filename = 'Derivative_'+str(count)+'_'+noise+'.png'
+    filename = 'Derivative_2_'+str(count)+'_'+noise+'.png'
     plt.savefig('Plots/'+filename)
     plt.show()
 
@@ -82,8 +91,8 @@ def plot_posterior_1d(bounds,gp,X,Y,noise_val,count):
       noise='Noisy '
     else:
       noise='Noisless'
-    t = np.linspace(-1, 15, 1000)
-    objective=functions.sin()
+    t = np.linspace(2, 8, 1000)
+    objective=functions.sin_2()
     y=objective.func(t)
     mu, y_var = gp.predict(t[:, np.newaxis])
     std=np.sqrt(y_var)
@@ -96,23 +105,30 @@ def plot_posterior_1d(bounds,gp,X,Y,noise_val,count):
     ax1.plot(t, mu,label='Mean')
     ax1.fill_between(t, mu-2*std, mu+2*std, color='red', alpha=0.15)
     ax1.plot(X, Y, 'ko', linewidth=2)
+    ax1.plot(X[len(X)-1],Y[len(Y)-1], 'ko',color='red')
+    max_index = t[np.argwhere(y == np.amax(y)).flatten().tolist()]
+    print(np.max(y))
+    ax1.plot(max_index,np.amax(y), 'x',color='red')
     ax1.plot(t,y, 'b--',label='True value')
     ax1.legend(loc='lower right', frameon=False)
-    filename = 'Function_'+str(count)+'_'+noise+'.png'
+    filename = 'Function_2_'+str(count)+'_'+noise+'.png'
     plt.savefig('Plots/'+filename)
     plt.show()  
 
 # Plot creation for 2-D functions (ploting the derivatives)
 def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     if noise_val==True:
-      noise='Noisy '
+      noise='Noisy'
     else:
       noise='Noisless'
     # creating meshgrid to plot over entire range
-    x1 = np.linspace(2,10,100)
-    x2 = np.linspace(2,10,100)
+    x1 = np.linspace(-4,4,100)
+    x2 = np.linspace(-4,4,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
+
+    objective=functions.sincos()
+    y=objective.func(t)
 
     # mean and var for D=0 and D=1
     mu_0, y_var_0 = gp_0.predict(t)
@@ -130,12 +146,12 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
 
     
     # The actual partial derivative of the function (used for comparision)
-  #  out_0=np.cos(t[:,1])*np.cos(t[:,0])
-  #  out_1=-np.sin(t[:,1])*np.sin(t[:,0])
+    out_0=np.cos(t[:,1])*np.cos(t[:,0])
+    out_1=-np.sin(t[:,1])*np.sin(t[:,0])
   #  out_0=t[:,1]*np.cos(t[:,1])*(np.sin(t[:,0])+t[:,0]*np.cos(t[:,0]))
-  #  out_1=t[:,0]*np.sin(t[:,0])*(np.cos(t[:,1])-t[:,1]*np.sin(t[:,1]))
-    out_0=(np.sin(t[:,1])*(2*t[:,0]*np.cos(t[:,0])-np.sin(t[:,0])))/(2*t[:,0]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
-    out_1=(np.sin(t[:,0])*(2*t[:,1]*np.cos(t[:,1])-np.sin(t[:,1])))/(2*t[:,1]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
+   # out_1=t[:,0]*np.sin(t[:,0])*(np.cos(t[:,1])-t[:,1]*np.sin(t[:,1]))
+   # out_0=(np.sin(t[:,1])*(2*t[:,0]*np.cos(t[:,0])-np.sin(t[:,0])))/(2*t[:,0]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
+   # out_1=(np.sin(t[:,0])*(2*t[:,1]*np.cos(t[:,1])-np.sin(t[:,1])))/(2*t[:,1]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
     """ Define the Derivative function above yourself, looking into creating a function to calculate
     this"""
     #Ploting
@@ -157,10 +173,23 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     fig.colorbar(im4, ax=ax3)
     fig.colorbar(im5, ax=ax3)
     ax3.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
+
     ax3.title.set_text('Contour Plot of Mean D=1')
     ax4.title.set_text('Standard deviation')
     # Saving all the plots in 2D_Plots (need to creat a folder) 
     filename = 'SinxSiny_'+str(count)+'_'+noise+'.png'
+    plt.savefig('2D_Plots/'+filename)
+    plt.show()
+    fig,(ax5)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
+    im6=ax5.contour(X1, X2, y.reshape(X1.shape),cmap='PuBuGn')
+    fig.colorbar(im4, ax=ax5)
+    ax5.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
+    max_index = t[np.argwhere(y == np.amax(y)).flatten().tolist()]
+    print(np.max(y))
+    ax5.plot(max_index[:,0],max_index[:,1], 'x',markersize=6,  color='red',alpha=0.8)
+    ax5.plot(X[len(X)-1][0],X[len(X)-1][1], 'ok',markersize=6,  color='red',alpha=0.8)
+    ax5.title.set_text('Function Plot')
+    filename = 'SinxSiny_Function_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     
@@ -190,6 +219,7 @@ def plot_posterior(bounds,gp,X,Y,count):
   #  ax1.fill_between(t, mu-2*std, mu+2*std, color='red', alpha=0.15)
   #  filename = 'Function_'+str(count)+'_'+noise+'.png'
   #  plt.savefig('Plots/'+filename) 
+
 
 
 

@@ -149,7 +149,6 @@ class GaussianProcess(object):
        
         KK_xTest_xTest=self.mycov(Xtest,Xtest,self.hyper)+np.eye(Xtest.shape[0])*self.noise_delta
         KK_xTest_x=self.mycov(Xtest,self.X,self.hyper)
-
         mean=np.dot(KK_xTest_x,self.alpha)
         v=np.linalg.solve(self.L,KK_xTest_x.T)
         var=KK_xTest_xTest-np.dot(v.T,v)

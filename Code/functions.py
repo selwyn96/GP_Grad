@@ -313,6 +313,40 @@ class sin:
         else:
             return fval
 
+class sin_2:
+    def __init__(self,noise=True,noise_std=0):
+        self.input_dim=1
+        self.bounds={'x':(2,8)}
+        #self.bounds={'x':(0,1)}
+        self.name='sin'
+        self.noise=noise
+        self.noise_std=noise_std
+    def func(self,coord):
+        x=np.asarray(coord)
+        temp=10/3
+        fval=-1*(np.sin(x)+np.sin(temp*x))
+        if self.noise:
+            return fval + np.random.normal(0, self.noise_std, size=(x.shape[0], ))
+        else:
+            return fval
+
+class cos_2:
+    def __init__(self,noise=False,noise_std=0):
+        self.input_dim=1
+        self.bounds={'x':(2,8)}
+        #self.bounds={'x':(0,1)}
+        self.name='sin'
+        self.noise=noise
+        self.noise_std=noise_std
+    def func(self,coord):
+        x=np.asarray(coord)
+        temp=10/3
+        fval=-1*(np.cos(x)+temp*np.cos(temp*x))
+        if self.noise:
+            return fval + np.random.normal(0, self.noise_std, size=(x.shape[0], ))
+        else:
+            return fval
+
 class cos:
     def __init__(self):
         self.input_dim=1
@@ -327,7 +361,7 @@ class cos:
 class sincos:
     def __init__(self,noise=False,noise_std=0):
         self.input_dim=2
-        self.bounds={'x': (2,10 ), 'y': (2,10)}
+        self.bounds={'x': (-4,4 ), 'y': (-4,4)}
         self.name='sincos'
         self.noise=noise
         self.noise_std=noise_std
@@ -360,9 +394,12 @@ class sincos:
         noise_val=0
         if self.noise==True:
             noise_val = np.random.normal(0,self.noise_std,n).reshape(n,1)
-        out = ((np.sin(X1)*np.sin(X2))/np.sqrt(X1*X2))+noise_val
+        out =  (np.sin(X1)*np.cos(X2))+noise_val
         out=np.squeeze(out)
         return out
+# ((np.sin(X1)*np.sin(X2))/np.sqrt(X1*X2))+noise_val SinxSiny
+# (np.sin(X1)*np.cos(X2))+noise_val  Sinxcosy
+# (X1*X2*np.sin(X1)*np.cos(X2))+noise_val, XYSINXCOSY
 
     def func_noisless(self,coord):
         if(coord.ndim==1):
@@ -373,6 +410,7 @@ class sincos:
         out =   np.sin(X1)*np.cos(X2)
         out=np.squeeze(out)
         return out 
+
     
     
 

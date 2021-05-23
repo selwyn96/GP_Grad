@@ -14,11 +14,12 @@ from Gaussian import GaussianProcess
 class methods(object):
     # Contain additional acq functions (slightly more complex ones)
 
-    def __init__(self, acq_name,bounds,model,Y):
+    def __init__(self, acq_name,bounds,model,model_1,obj,Y,X,Count):
 
             self.acq_name = acq_name
             self.bounds=bounds
             self.model=model
+            self.model_1=model_1
             self.dim = len(self.bounds)
             self.sobol = SobolEngine(self.dim, scramble=True)
             self.lb=np.array(self.bounds)[:,0]
@@ -26,6 +27,9 @@ class methods(object):
             self.center=(self.lb +self.ub)/2 # The center of the unit domain, used for Satisfying TS
             self.n_samples=1000
             self.Y=Y
+            self.present_val=X
+            self.count=Count
+            self.obj=obj
 
     
     def method_val(self):
@@ -38,11 +42,66 @@ class methods(object):
 
         if self.acq_name == 'MES' :
             return self._MES()
+
+        if self.acq_name == 'GD' :
+            return self._GD()
     
     # randomly samples a point in the domain
     def _random(self):
         x= np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( 1, self.bounds.shape[0]))[0]
+        print(x)
         return x
+    
+    # Gradient descent algo
+
+    def _GD(self):
+        LR=1.5
+        print(self.count)
+        if(self.count==0):
+                starting_point=self.find_initial_point()
+        else:
+                starting_point=self.present_val
+
+        if self.dim==1:
+            mean, var = self.model.predict(starting_point+0.9*self.obj.return_moment())
+            new_momentum=0.9*self.obj.return_moment()+LR*mean
+            new_x=starting_point+new_momentum
+            self.obj.save_moment(new_momentum)
+
+        elif self.dim==2:
+            mean_1, var_1 = self.model.predict(starting_point+0.9*self.obj.return_moment())
+            mean_2, var_2 = self.model_1.predict(starting_point+0.9*self.obj.return_moment())
+            mean=np.append(mean_1.item(), mean_2.item())
+            new_momentum=0.9*self.obj.return_moment()+LR*mean
+            new_x=starting_point+new_momentum
+            self.obj.save_moment(new_momentum)
+        return(new_x)
+
+    def find_initial_point(self):
+        x_tries = np.random.uniform(self.bounds[:, 0],self.bounds[:, 1],size=(1000, self.bounds.shape[0]))
+        ys = self.min_var(x_tries)
+        x_min = x_tries[np.random.choice(np.where(ys == ys.min())[0])]
+        min_acq = ys.min()
+        # Explore the parameter space more throughly
+        x_seeds = np.random.uniform(self.bounds[:, 0],self.bounds[:, 1],size=(10, self.bounds.shape[0]))
+        for x_try in x_seeds:
+            res = minimize(lambda x: self.min_var(x.reshape(1, -1)),x_try.reshape(1, -1),bounds=self.bounds,method="L-BFGS-B")
+            if not res.success:
+                continue
+            if min_acq is None or res.fun[0] <= min_acq:
+                x_min = res.x
+                min_acq = res.fun[0]
+        return np.clip(x_min, self.bounds[:, 0],self.bounds[:, 1])
+
+    def min_var(self,X):
+        mean, var = self.model.predict(X)
+        if self.dim==2:
+            mean, var_1 = self.model.predict(X)
+            mean, var_2 = self.model_1.predict(X)
+            var=var_1+var_2
+        std=np.sqrt(var)
+        return std
+
         
     
     # Thompsons sampling
