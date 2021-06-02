@@ -10,6 +10,7 @@ import sobol_seq
 from torch.quasirandom import SobolEngine
 from utils import unique_rows
 from Gaussian import GaussianProcess
+import math 
 
 class methods(object):
     # Contain additional acq functions (slightly more complex ones)
@@ -55,27 +56,42 @@ class methods(object):
     # Gradient descent algo
 
     def _GD(self):
-        LR=1.5
-        print(self.count)
+      #  LR=0.4
+        LR=0.01+0.5*(0.1-0.01)*(1+math.cos((self.count/20)*math.pi))
+        print(LR)
         if(self.count==0):
                 starting_point=self.find_initial_point()
         else:
                 starting_point=self.present_val
 
         if self.dim==1:
-            mean, var = self.model.predict(starting_point+0.9*self.obj.return_moment())
+         #   mean, var = self.model.predict(starting_point+0.9*self.obj.return_moment())
+            mean = self.model.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten()
             new_momentum=0.9*self.obj.return_moment()+LR*mean
             new_x=starting_point+new_momentum
             self.obj.save_moment(new_momentum)
 
-        elif self.dim==2:
-            mean_1, var_1 = self.model.predict(starting_point+0.9*self.obj.return_moment())
-            mean_2, var_2 = self.model_1.predict(starting_point+0.9*self.obj.return_moment())
+        elif self.dim==2: 
+         #   mean_1=np.average(self.model.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten())
+        #    mean_2=np.average(self.model_1.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten())
+            mean_1=np.average(self.model.sample(starting_point,size=1).flatten())
+            mean_2=np.average(self.model_1.sample(starting_point,size=1).flatten())
+         #   mean_1, var_1 = self.model.predict(starting_point)
+          #  mean_2, var_2 = self.model_1.predict(starting_point)
             mean=np.append(mean_1.item(), mean_2.item())
-            new_momentum=0.9*self.obj.return_moment()+LR*mean
-            new_x=starting_point+new_momentum
-            self.obj.save_moment(new_momentum)
-        return(new_x)
+            m,v=self.obj.return_m_v()
+            m_new=0.9*m+(1-0.9)*mean
+            v_new=0.999*v+(1-0.999)*np.square(mean)
+            self.obj.save_m_v(m_new,v_new)
+            m_hat=m_new/(1-0.9**(self.count+1))
+            v_hat=v_new/(1-0.999**(self.count+1))
+            new_x=starting_point+LR*((m_hat/(np.sqrt(v_hat)+1e-8)))
+
+        #    new_momentum=0.9*self.obj.return_moment()+LR*mean
+         #   new_x=starting_point+new_momentum
+         #   self.obj.save_moment(new_momentum)
+        return np.clip(new_x, self.bounds[:, 0],self.bounds[:, 1])
+
 
     def find_initial_point(self):
         x_tries = np.random.uniform(self.bounds[:, 0],self.bounds[:, 1],size=(1000, self.bounds.shape[0]))

@@ -53,10 +53,17 @@ def unique_rows(a):
 class Momentum(object):
     def __init__ (self):
       self.momentum=0
+      self.m=0
+      self.v=0
     def save_moment(self,momentum):
       self.momentum=momentum
     def return_moment(self):
       return(self.momentum)
+    def save_m_v(self,m,v):
+      self.m=m
+      self.v=v
+    def return_m_v(self):
+      return(self.m,self.v)
       
 
 # Plot creation for 1-D functions
@@ -126,81 +133,81 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     x2 = np.linspace(-4,4,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-
-    objective=functions.sincos()
+    objective=functions.Kean()
     y=objective.func(t)
-
+    
     # mean and var for D=0 and D=1
-    mu_0, y_var_0 = gp_0.predict(t)
-    mu_1, y_var_1 = gp_1.predict(t)
+  #   mu_0, y_var_0 = gp_0.predict(t)
+  #   mu_1, y_var_1 = gp_1.predict(t)
 
-    std_0=np.sqrt(y_var_0)
-    mu_0=np.squeeze(mu_0)
-    std_0=np.squeeze(std_0)
-    std_0 = std_0.clip(min=0)
+  #   std_0=np.sqrt(y_var_0)
+  #   mu_0=np.squeeze(mu_0)
+  #   std_0=np.squeeze(std_0)
+  #   std_0 = std_0.clip(min=0)
 
-    std_1=np.sqrt(y_var_1)
-    mu_1=np.squeeze(mu_1)
-    std_1=np.squeeze(std_1)
-    std_1 = std_1.clip(min=0)
+  #   std_1=np.sqrt(y_var_1)
+  #   mu_1=np.squeeze(mu_1)
+  #   std_1=np.squeeze(std_1)
+  #   std_1 = std_1.clip(min=0)
 
     
-    # The actual partial derivative of the function (used for comparision)
-    out_0=np.cos(t[:,1])*np.cos(t[:,0])
-    out_1=-np.sin(t[:,1])*np.sin(t[:,0])
-  #  out_0=t[:,1]*np.cos(t[:,1])*(np.sin(t[:,0])+t[:,0]*np.cos(t[:,0]))
-   # out_1=t[:,0]*np.sin(t[:,0])*(np.cos(t[:,1])-t[:,1]*np.sin(t[:,1]))
-   # out_0=(np.sin(t[:,1])*(2*t[:,0]*np.cos(t[:,0])-np.sin(t[:,0])))/(2*t[:,0]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
-   # out_1=(np.sin(t[:,0])*(2*t[:,1]*np.cos(t[:,1])-np.sin(t[:,1])))/(2*t[:,1]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
-    """ Define the Derivative function above yourself, looking into creating a function to calculate
-    this"""
-    #Ploting
-    fig,((ax1,ax2),(ax3, ax4))=plt.subplots(nrows=2, ncols=2, figsize=(12, 6), dpi=100)
-    im=ax2.pcolormesh(X1, X2, std_0.reshape(X1.shape),cmap='jet')
-    fig.colorbar(im, ax=ax2)
-    im1=ax1.contour(X1, X2, out_0.reshape(X1.shape),cmap='PuBuGn')
-    im2=ax1.contour(X1, X2, mu_0.reshape(X1.shape),cmap='YlOrRd')
-    fig.colorbar(im1, ax=ax1)
-    fig.colorbar(im2, ax=ax1)
-    ax1.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
-    ax1.title.set_text('Contour Plot of Mean D=0'+' '+noise)
-    ax2.title.set_text('Standard deviation')
+  #   # The actual partial derivative of the function (used for comparision)
+  #   out_0=np.cos(t[:,1])*np.cos(t[:,0])
+  #   out_1=-np.sin(t[:,1])*np.sin(t[:,0])
+  # #  out_0=t[:,1]*np.cos(t[:,1])*(np.sin(t[:,0])+t[:,0]*np.cos(t[:,0]))
+  #  # out_1=t[:,0]*np.sin(t[:,0])*(np.cos(t[:,1])-t[:,1]*np.sin(t[:,1]))
+  #  # out_0=(np.sin(t[:,1])*(2*t[:,0]*np.cos(t[:,0])-np.sin(t[:,0])))/(2*t[:,0]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
+  #  # out_1=(np.sin(t[:,0])*(2*t[:,1]*np.cos(t[:,1])-np.sin(t[:,1])))/(2*t[:,1]*np.sqrt(t[:,0])*np.sqrt(t[:,1]))
+  #    Define the Derivative function above yourself, looking into creating a function to calculate
+  #   this
+  #   #Ploting
+  #   fig,((ax1,ax2),(ax3, ax4))=plt.subplots(nrows=2, ncols=2, figsize=(12, 6), dpi=100)
+  #   im=ax2.pcolormesh(X1, X2, std_0.reshape(X1.shape),cmap='jet')
+  #   fig.colorbar(im, ax=ax2)
+  #   im1=ax1.contour(X1, X2, out_0.reshape(X1.shape),cmap='PuBuGn')
+  #   im2=ax1.contour(X1, X2, mu_0.reshape(X1.shape),cmap='YlOrRd')
+  #   fig.colorbar(im1, ax=ax1)
+  #   fig.colorbar(im2, ax=ax1)
+  #   ax1.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
+  #   ax1.title.set_text('Contour Plot of Mean D=0'+' '+noise)
+  #   ax2.title.set_text('Standard deviation')
 
-    im3=ax4.pcolormesh(X1, X2, std_1.reshape(X1.shape),cmap='jet')
-    fig.colorbar(im3, ax=ax4)
-    im4=ax3.contour(X1, X2, out_1.reshape(X1.shape),cmap='PuBuGn')
-    im5=ax3.contour(X1, X2, mu_1.reshape(X1.shape),cmap='YlOrRd')
-    fig.colorbar(im4, ax=ax3)
-    fig.colorbar(im5, ax=ax3)
-    ax3.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
+  #   im3=ax4.pcolormesh(X1, X2, std_1.reshape(X1.shape),cmap='jet')
+  #   fig.colorbar(im3, ax=ax4)
+  #   im4=ax3.contour(X1, X2, out_1.reshape(X1.shape),cmap='PuBuGn')
+  #   im5=ax3.contour(X1, X2, mu_1.reshape(X1.shape),cmap='YlOrRd')
+  #   fig.colorbar(im4, ax=ax3)
+  #   fig.colorbar(im5, ax=ax3)
+  #   ax3.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
 
-    ax3.title.set_text('Contour Plot of Mean D=1')
-    ax4.title.set_text('Standard deviation')
-    # Saving all the plots in 2D_Plots (need to creat a folder) 
-    filename = 'SinxSiny_'+str(count)+'_'+noise+'.png'
-    plt.savefig('2D_Plots/'+filename)
-    plt.show()
+  #   ax3.title.set_text('Contour Plot of Mean D=1')
+  #   ax4.title.set_text('Standard deviation')
+  #   # Saving all the plots in 2D_Plots (need to creat a folder) 
+  #   filename = 'SinxSiny_'+str(count)+'_'+noise+'.png'
+  #   plt.savefig('2D_Plots/'+filename)
+  #   plt.show()      
+  
     fig,(ax5)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
-    im6=ax5.contour(X1, X2, y.reshape(X1.shape),cmap='PuBuGn')
-    fig.colorbar(im4, ax=ax5)
+    im6=ax5.contour(X1, X2, y.reshape(X1.shape),10,cmap='PuBuGn')
+    fig.colorbar(im6, ax=ax5)
     ax5.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
     max_index = t[np.argwhere(y == np.amax(y)).flatten().tolist()]
     print(np.max(y))
     ax5.plot(max_index[:,0],max_index[:,1], 'x',markersize=6,  color='red',alpha=0.8)
     ax5.plot(X[len(X)-1][0],X[len(X)-1][1], 'ok',markersize=6,  color='red',alpha=0.8)
     ax5.title.set_text('Function Plot')
-    filename = 'SinxSiny_Function_'+str(count)+'_'+noise+'.png'
+    filename = 'Branin_Function_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     
 
 def plot_posterior(bounds,gp,X,Y,count):
     noise='Noisy' # Noisy or Noiseless
-    x1 = np.linspace(-4,4,100)
-    x2 = np.linspace(-4,4,100)
+    x1 = np.linspace(-5,10,100)
+    x2 = np.linspace(0,15,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Kean()
+    objective=functions.Branin()
     y=objective.func(t)
     mu, y_var = gp.predict(t)
     std=np.sqrt(y_var)

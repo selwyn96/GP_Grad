@@ -12,8 +12,7 @@ import matplotlib.cm as cm
 from scipy.linalg import block_diag
 from numpy.linalg import inv
 class GaussianProcess_grad(object):
-    def __init__ (self,SearchSpace,Noise=False,noise_delta=1e-4,D=0,verbose=0):
-        self.noise_delta=noise_delta
+    def __init__ (self,SearchSpace,Noise=False,noise_delta=1e-8,D=0,verbose=0):
         self.noise_upperbound=noise_delta
         self.mycov=self.cov_RBF 
         self.mycov_11=self.cov_11 # Covariance between two partial derivatives
@@ -30,9 +29,9 @@ class GaussianProcess_grad(object):
         self.hyper['var']=1 # standardise the data
         self.hyper['lengthscale']=1 #to be optimised
         if(Noise==True) :
-            self.noise_delta=noise_delta
+            self.noise_delta=noise_delta**2
         else:
-            self.noise_delta=1e-4
+            self.noise_delta=1e-8
         return None
    
         

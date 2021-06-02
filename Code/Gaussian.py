@@ -12,7 +12,6 @@ from scipy.linalg import block_diag
 
 class GaussianProcess(object):
     def __init__ (self,SearchSpace,Noise=False,noise_delta=1e-4,verbose=0): # noise_delta=1e-8
-        self.noise_delta=noise_delta
         self.noise_upperbound=noise_delta
         self.mycov=self.cov_RBF
         self.SearchSpace=SearchSpace
@@ -23,12 +22,12 @@ class GaussianProcess(object):
         self.dim=SearchSpace.shape[0]
         
         self.hyper={}
-        self.hyper['var']=1 
+        self.hyper['var']=1
         self.hyper['lengthscale']=1
         if(Noise==True) :
-            self.noise_delta=noise_delta
+            self.noise_delta=noise_delta**2
         else:
-            self.noise_delta=1e-4
+            self.noise_delta=1e-8
         return None
    
         

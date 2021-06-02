@@ -57,6 +57,7 @@ class GP_action:
           self.ls=1
           self.Noise=Noise
           self.Noise_level=Noise_level
+          self.Noise_S=Noise_level
           
 
       
@@ -76,6 +77,7 @@ class GP_action:
                self.X_S = np.vstack((self.X_S, x_s))
                self.Y = np.append(self.Y, self.func(X_test[i]))
           self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
+          self.Noise_S=self.Noise_level/np.std(self.Y)
 
      def find_kernel(self):
           gp_test=GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose) 
@@ -96,18 +98,18 @@ class GP_action:
       #    if self.count==0:
        #        self.var,self.ls= self.find_kernel() # If we need to find the approx kernel of the function
           
-          gp_grad_0=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
-          gp_grad_1=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
+          gp_grad_0=GaussianProcess_grad(self.bounds_s,self.Noise, self.Noise_S,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
+          gp_grad_1=GaussianProcess_grad(self.bounds_s,self.Noise, self.Noise_S ,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
           gp_grad_0.set_hyper(self.ls,self.var) # setting the hyperparameters
           gp_grad_1.set_hyper(self.ls,self.var)
-          gp_grad_0.fit(self.X[ur], self.Y[ur]) # fitting to the data which has been sampled
-          gp_grad_1.fit(self.X[ur], self.Y[ur])
+          gp_grad_0.fit(self.X_S[ur], self.Y_S[ur]) # fitting to the data which has been sampled
+          gp_grad_1.fit(self.X_S[ur], self.Y_S[ur])
           plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.X,self.Y,self.Noise,self.count) # Creating the Plot 
 
        #   gp_test= GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose)
-        #  gp_test.fit(self.X, self.Y)
-        # plot_posterior_1d(self.bounds,gp_test,self.X, self.Y,self.Noise,self.count)
-        #  plot_posterior_grad_1d(self.bounds,gp_grad_0,self.X, self.Y,self.Noise,self.count)
+       #   gp_test.fit(self.X, self.Y)
+       #   plot_posterior_1d(self.bounds,gp_test,self.X, self.Y,self.Noise,self.count)
+       #   plot_posterior_grad_1d(self.bounds,gp_grad_0,self.X, self.Y,self.Noise,self.count)
           
           if(self.count==0):  # creating object that saves the momentum values
                self.obj=Momentum()  
@@ -117,7 +119,7 @@ class GP_action:
           start_opt=time.time()
           # X_val is the new point that is sampled 
           if(self.acq_name=='random' or self.acq_name=='TS' or self.acq_name=='MES' or self.acq_name=='GD'):
-               objects =methods(self.acq_name,self.bounds,gp_grad_0,gp_grad_1,self.obj,self.Y,self.X[len(self.X)-1],self.count)
+               objects =methods(self.acq_name,self.bounds_s,gp_grad_0,gp_grad_1,self.obj,self.Y,self.X_S[len(self.X_S)-1],self.count)
                x_val=objects.method_val()
           else:
                x_val= optimise_acq_func(model=self.gp,bounds=self.bounds_s,y_max=y_max,sample_count=no_val_samp,acq_name=self.acq_name)
@@ -128,14 +130,15 @@ class GP_action:
           self.time_opt=np.hstack((self.time_opt,elapse_opt))
           
            # Saving new values of X, Y 
-         # x_val_ori=self.Xscaler.inverse_transform(np.reshape(x_val,(-1,self.dim)))
-          x_val_ori=x_val
+          x_val_ori=self.Xscaler.inverse_transform(np.reshape(x_val,(-1,self.dim)))
+        #  x_val_ori=x_val
         
           y_actual= self.func(x_val_ori) 
           self.X_S = np.vstack((self.X_S, x_val.reshape((1, -1))))
           self.X=np.vstack((self.X, x_val_ori))
           self.Y = np.append(self.Y, self.func(x_val_ori))
           self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
+          self.Noise_S=self.Noise_level/np.std(self.Y)
           self.count=self.count+1
 
           return x_val,y_actual

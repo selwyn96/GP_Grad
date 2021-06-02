@@ -45,12 +45,16 @@ class Shubert:
         self.bounds={'x': (-3, 1), 'y': (-3, 1)}
         self.name='Shubert'
     def func(self,coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+        X1=coord[:,0]
+        X2=coord[:,1]
         out_0 = 0
         out_1 = 0
         for i in range(5):
-            out_0 += (i + 1) * np.cos((i + 2) * coord[0] + (i + 1))
+            out_0 += (i + 1) * np.cos((i + 2) * X1 + (i + 1))
         for i in range(5):
-            out_1 += (i + 1) * np.sin((i + 2) * coord[1] + (i + 1))
+            out_1 += (i + 1) * np.sin((i + 2) * X2 + (i + 1))
         return (out_0 * out_1 + 220)/200
 
 
@@ -60,6 +64,10 @@ class Branin:
         self.bounds={'x': (-5, 10), 'y': (0, 15)}
         self.name='Branin'
     def func(self,coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+        X1=coord[:,0]
+        X2=coord[:,1]
         PI = math.pi
         a = 1
         b = 5.1/(4*pow(PI, 2))
@@ -67,7 +75,7 @@ class Branin:
         r = 6   
         s = 10
         t = 1/(8*PI)
-        out = a*(coord[1] - b*coord[0]**2 + c*coord[0] -r)**2 + s*(1-t)*np.cos(coord[0]) + s
+        out = a*(X2 - b*X1**2 + c*X1 -r)**2 + s*(1-t)*np.cos(X1) + s
         return - out
 
 
@@ -361,7 +369,7 @@ class cos:
 class sincos:
     def __init__(self,noise=False,noise_std=0):
         self.input_dim=2
-        self.bounds={'x': (-4,4 ), 'y': (-4,4)}
+        self.bounds={'x': (3,12 ), 'y': (3,12)}
         self.name='sincos'
         self.noise=noise
         self.noise_std=noise_std
@@ -394,7 +402,7 @@ class sincos:
         noise_val=0
         if self.noise==True:
             noise_val = np.random.normal(0,self.noise_std,n).reshape(n,1)
-        out =  (np.sin(X1)*np.cos(X2))+noise_val
+        out =  ((np.sin(X1)*np.sin(X2))/np.sqrt(X1*X2))+noise_val
         out=np.squeeze(out)
         return out
 # ((np.sin(X1)*np.sin(X2))/np.sqrt(X1*X2))+noise_val SinxSiny
