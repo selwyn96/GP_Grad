@@ -56,8 +56,8 @@ class methods(object):
     # Gradient descent algo
 
     def _GD(self):
-      #  LR=0.4
-        LR=0.01+0.5*(0.1-0.01)*(1+math.cos((self.count/20)*math.pi))
+        LR=0.2
+      #  LR=0.01+0.5*(0.1-0.01)*(1+math.cos((self.count/20)*math.pi))
         print(LR)
         if(self.count==0):
                 starting_point=self.find_initial_point()
@@ -74,21 +74,24 @@ class methods(object):
         elif self.dim==2: 
          #   mean_1=np.average(self.model.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten())
         #    mean_2=np.average(self.model_1.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten())
-            mean_1=np.average(self.model.sample(starting_point,size=1).flatten())
-            mean_2=np.average(self.model_1.sample(starting_point,size=1).flatten())
+            mean_1=np.average(self.model.sample(starting_point,size=2).flatten())
+            mean_2=np.average(self.model_1.sample(starting_point,size=2).flatten())
          #   mean_1, var_1 = self.model.predict(starting_point)
-          #  mean_2, var_2 = self.model_1.predict(starting_point)
+         #   mean_2, var_2 = self.model_1.predict(starting_point)
+            mean_1,mean_2=self.obj.perform_transform(mean_1,mean_2)
+            print(mean_1,mean_2)
             mean=np.append(mean_1.item(), mean_2.item())
-            m,v=self.obj.return_m_v()
-            m_new=0.9*m+(1-0.9)*mean
-            v_new=0.999*v+(1-0.999)*np.square(mean)
-            self.obj.save_m_v(m_new,v_new)
-            m_hat=m_new/(1-0.9**(self.count+1))
-            v_hat=v_new/(1-0.999**(self.count+1))
-            new_x=starting_point+LR*((m_hat/(np.sqrt(v_hat)+1e-8)))
+      #      m,v=self.obj.return_m_v()
+      #      m_new=0.9*m+(1-0.9)*mean
+      #      v_new=0.999*v+(1-0.999)*np.square(mean)
+      #      self.obj.save_m_v(m_new,v_new)
+      #      m_hat=m_new/(1-0.9**(self.count+1))
+      #      v_hat=v_new/(1-0.999**(self.count+1))
+      #      print(LR*((m_hat/(np.sqrt(v_hat)+1e-8))))
+      #      new_x=starting_point+LR*((m_hat/(np.sqrt(v_hat)+1e-8)))
 
         #    new_momentum=0.9*self.obj.return_moment()+LR*mean
-         #   new_x=starting_point+new_momentum
+            new_x=starting_point+LR*mean
          #   self.obj.save_moment(new_momentum)
         return np.clip(new_x, self.bounds[:, 0],self.bounds[:, 1])
 

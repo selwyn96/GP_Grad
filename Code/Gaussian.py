@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 from scipy.linalg import block_diag
 
 class GaussianProcess(object):
-    def __init__ (self,SearchSpace,Noise=False,noise_delta=1e-4,verbose=0): # noise_delta=1e-8
+    def __init__ (self,SearchSpace,Noise=False,noise_delta=1e-8,verbose=0): # noise_delta=1e-8
         self.noise_upperbound=noise_delta
         self.mycov=self.cov_RBF
         self.SearchSpace=SearchSpace

@@ -26,36 +26,51 @@ def synthetic_input():
 
 
 class Kean:
-    def __init__(self):
+    def __init__(self,noise=False,noise_std=0):
         self.input_dim=2
         self.bounds={'x': (-4, 4), 'y': (-4, 4)}
         self.name='Kean'
+        self.noise=noise
+        self.noise_std=noise_std
     def func(self,coord):
         if(coord.ndim==1):
             coord=coord[np.newaxis,:]
         X1=coord[:,0]
         X2=coord[:,1]
+        n=coord.shape[0]
         out =   np.abs((np.cos(X1)**4 + np.cos(X2)**4 - 2 * (np.cos(X1)**2) * (np.cos(X2)**2))) / np.sqrt(1*X1**2 + 1.5*X2**2)
-        out=np.squeeze(out)
-        return out * 1.5
+        out=np.squeeze(out)*1.5
+        if self.noise:
+            return out+np.random.normal(0,self.noise_std,n).reshape(n,1)
+        else:
+            return out
 
 class Shubert:
-    def __init__(self):
+    def __init__(self,noise=False,noise_std=0):
         self.input_dim=2
         self.bounds={'x': (-3, 1), 'y': (-3, 1)}
         self.name='Shubert'
+        self.noise=noise
+        self.noise_std=noise_std
     def func(self,coord):
         if(coord.ndim==1):
             coord=coord[np.newaxis,:]
         X1=coord[:,0]
         X2=coord[:,1]
+        n=coord.shape[0]
         out_0 = 0
         out_1 = 0
         for i in range(5):
             out_0 += (i + 1) * np.cos((i + 2) * X1 + (i + 1))
         for i in range(5):
             out_1 += (i + 1) * np.sin((i + 2) * X2 + (i + 1))
-        return (out_0 * out_1 + 220)/200
+        
+        out=(out_0 * out_1 + 220)/200
+        if self.noise:
+            return out+np.random.normal(0,self.noise_std,n).reshape(n,1)
+        else:
+            return out
+
 
 
 class Branin:

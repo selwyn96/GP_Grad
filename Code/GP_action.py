@@ -46,14 +46,14 @@ class GP_action:
           self.bounds_s=np.array([np.zeros(self.dim), np.ones(self.dim)]).T  # scaled bounds
           self.func = func
           self.acq_name = acq_name
-          scaler = MinMaxScaler()  # Tranform from orignal to scaled vales
+          scaler = MinMaxScaler(feature_range=(0, 1)) # Tranform from orignal to scaled vales
           scaler.fit(self.bounds.T)
           self.Xscaler=scaler
           self.verbose=verbose
        #   self.gp=GaussianProcess(self.bounds_s,verbose=verbose) # GP over observed values
           self.time_opt=0
           self.count=0 # keeps a count of no of times a new value is sampled
-          self.var=1 
+          self.var=1
           self.ls=1
           self.Noise=Noise
           self.Noise_level=Noise_level
@@ -90,26 +90,27 @@ class GP_action:
               
      def sample_new_value(self):
      
-          self.gp=GaussianProcess(self.bounds_s,self.Noise, self.Noise_level,verbose=self.verbose) # Acq function uses this GP to estimate next point to smaple 
-          ur = unique_rows(self.X_S)
-          self.gp.fit(self.X_S[ur], self.Y_S[ur])
-        #  if  len(self.Y)%(3)==0:
-       #        self.gp.optimise()
+          self.gp=GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose) # Acq function uses this GP to estimate next point to smaple 
+          ur = unique_rows(self.X)
+          self.gp.fit(self.X[ur], self.Y[ur])
+          if  len(self.Y)%(3)==0:
+               self.gp.optimise()
+          self.var,self.ls=self.gp.Hyper()
       #    if self.count==0:
        #        self.var,self.ls= self.find_kernel() # If we need to find the approx kernel of the function
-          
-          gp_grad_0=GaussianProcess_grad(self.bounds_s,self.Noise, self.Noise_S,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
-          gp_grad_1=GaussianProcess_grad(self.bounds_s,self.Noise, self.Noise_S ,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
+          gp_grad_0=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
+          gp_grad_1=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level ,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
           gp_grad_0.set_hyper(self.ls,self.var) # setting the hyperparameters
           gp_grad_1.set_hyper(self.ls,self.var)
-          gp_grad_0.fit(self.X_S[ur], self.Y_S[ur]) # fitting to the data which has been sampled
-          gp_grad_1.fit(self.X_S[ur], self.Y_S[ur])
+          gp_grad_0.fit(self.X[ur], self.Y[ur]) # fitting to the data which has been sampled
+          gp_grad_1.fit(self.X[ur], self.Y[ur])
           plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.X,self.Y,self.Noise,self.count) # Creating the Plot 
 
-       #   gp_test= GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose)
-       #   gp_test.fit(self.X, self.Y)
-       #   plot_posterior_1d(self.bounds,gp_test,self.X, self.Y,self.Noise,self.count)
-       #   plot_posterior_grad_1d(self.bounds,gp_grad_0,self.X, self.Y,self.Noise,self.count)
+       #   gp_test= GaussianProcess(self.bounds,self.Noise,self.Noise_level,verbose=self.verbose)
+       #   gp_test.set_hyper(self.ls,self.var)
+        #  gp_test.fit(self.X, self.Y_S)
+       #   plot_posterior_1d(self.bounds,gp_test,self.X, self.Y_S,self.Noise,self.count)
+        #  plot_posterior_grad_1d(self.bounds,gp_grad_0,self.X, self.Y_S,self.Noise,self.count)
           
           if(self.count==0):  # creating object that saves the momentum values
                self.obj=Momentum()  
@@ -119,10 +120,10 @@ class GP_action:
           start_opt=time.time()
           # X_val is the new point that is sampled 
           if(self.acq_name=='random' or self.acq_name=='TS' or self.acq_name=='MES' or self.acq_name=='GD'):
-               objects =methods(self.acq_name,self.bounds_s,gp_grad_0,gp_grad_1,self.obj,self.Y,self.X_S[len(self.X_S)-1],self.count)
+               objects =methods(self.acq_name,self.bounds,gp_grad_0,gp_grad_1,self.obj,self.Y,self.X[len(self.X)-1],self.count)
                x_val=objects.method_val()
           else:
-               x_val= optimise_acq_func(model=self.gp,bounds=self.bounds_s,y_max=y_max,sample_count=no_val_samp,acq_name=self.acq_name)
+               x_val= optimise_acq_func(model=self.gp,bounds=self.bounds,y_max=y_max,sample_count=no_val_samp,acq_name=self.acq_name)
 
           # record the optimization time
           finished_opt=time.time()
@@ -130,8 +131,8 @@ class GP_action:
           self.time_opt=np.hstack((self.time_opt,elapse_opt))
           
            # Saving new values of X, Y 
-          x_val_ori=self.Xscaler.inverse_transform(np.reshape(x_val,(-1,self.dim)))
-        #  x_val_ori=x_val
+       #   x_val_ori=self.Xscaler.inverse_transform(np.reshape(x_val,(-1,self.dim)))
+          x_val_ori=x_val
         
           y_actual= self.func(x_val_ori) 
           self.X_S = np.vstack((self.X_S, x_val.reshape((1, -1))))

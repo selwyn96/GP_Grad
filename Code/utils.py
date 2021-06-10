@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import seaborn as sns
 import functions
+from sklearn.preprocessing import MinMaxScaler
 
 
 def optimise_acq_func(model,bounds,y_max,sample_count,acq_name="PI"):
@@ -55,6 +56,10 @@ class Momentum(object):
       self.momentum=0
       self.m=0
       self.v=0
+      self.max_1=0
+      self.min_1=0
+      self.max_2=0
+      self.min_2=0
     def save_moment(self,momentum):
       self.momentum=momentum
     def return_moment(self):
@@ -64,6 +69,32 @@ class Momentum(object):
       self.v=v
     def return_m_v(self):
       return(self.m,self.v)
+    def perform_transform(self,mean_1,mean_2):
+      if(mean_1>=0):
+        if(mean_1>self.max_1):
+          self.max_1=mean_1
+        X_std = (mean_1 - 0) / (self.max_1 - 0)
+        X_scaled_1 = X_std * (2- 0) + 0
+
+      if(mean_1<0):
+        if(mean_1<self.min_1):
+          self.min_1=mean_1
+        X_std = (mean_1 - 0) / (self.min_1 - 0)
+        X_scaled_1 = -1*X_std * (2 - 0) + 0
+
+      if(mean_2>=0):
+        if(mean_2>self.max_2):
+          self.max_2=mean_2
+        X_std = (mean_2 - 0) / (self.max_2 - 0)
+        X_scaled_2 = X_std * (2 - 0) + 0
+
+      if(mean_2<0):
+        if(mean_2<self.min_2):
+          self.min_2=mean_2
+        X_std = (mean_2 - 0) / (self.min_2 - 0)
+        X_scaled_2 = -1*X_std * (2 - 0) + 0
+      return(X_scaled_1,X_scaled_2)
+     
       
 
 # Plot creation for 1-D functions
@@ -72,7 +103,7 @@ def plot_posterior_grad_1d(bounds,gp,X,Y,noise_val,count):
       noise='Noisy '
     else:
       noise='Noisless'
-    t = np.linspace(2, 8, 1000)
+    t = np.linspace(2,8, 1000)
     objective=functions.cos_2()
     y=objective.func(t)
     mu, y_var = gp.predict(t[:, np.newaxis])
@@ -85,7 +116,7 @@ def plot_posterior_grad_1d(bounds,gp,X,Y,noise_val,count):
     plt.ylabel('Derivative Value')
     plt.xlabel('Input')
     ax1.plot(t, mu, label='Mean')
-    ax1.fill_between(t, mu-1.96*std, mu+1.96*std, color='red', alpha=0.15)
+    ax1.fill_between(t, mu-2*std, mu+2*std, color='red', alpha=0.15)
     ax1.plot(X, Y, 'ko', linewidth=2)
     ax1.plot(t,y, 'b--',label='True value')
     ax1.legend(loc='lower right', frameon=False)
@@ -98,7 +129,7 @@ def plot_posterior_1d(bounds,gp,X,Y,noise_val,count):
       noise='Noisy '
     else:
       noise='Noisless'
-    t = np.linspace(2, 8, 1000)
+    t = np.linspace(2,8 , 1000)
     objective=functions.sin_2()
     y=objective.func(t)
     mu, y_var = gp.predict(t[:, np.newaxis])
@@ -114,7 +145,6 @@ def plot_posterior_1d(bounds,gp,X,Y,noise_val,count):
     ax1.plot(X, Y, 'ko', linewidth=2)
     ax1.plot(X[len(X)-1],Y[len(Y)-1], 'ko',color='red')
     max_index = t[np.argwhere(y == np.amax(y)).flatten().tolist()]
-    print(np.max(y))
     ax1.plot(max_index,np.amax(y), 'x',color='red')
     ax1.plot(t,y, 'b--',label='True value')
     ax1.legend(loc='lower right', frameon=False)
@@ -128,12 +158,12 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
       noise='Noisy'
     else:
       noise='Noisless'
-    # creating meshgrid to plot over entire range
-    x1 = np.linspace(-4,4,100)
-    x2 = np.linspace(-4,4,100)
+  #  creating meshgrid to plot over entire range
+    x1 = np.linspace(3,12,100)
+    x2 = np.linspace(3,12,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Kean()
+    objective=functions.sincos()
     y=objective.func(t)
     
     # mean and var for D=0 and D=1
@@ -196,18 +226,18 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     ax5.plot(max_index[:,0],max_index[:,1], 'x',markersize=6,  color='red',alpha=0.8)
     ax5.plot(X[len(X)-1][0],X[len(X)-1][1], 'ok',markersize=6,  color='red',alpha=0.8)
     ax5.title.set_text('Function Plot')
-    filename = 'Branin_Function_'+str(count)+'_'+noise+'.png'
+    filename = 'SinCos_Function_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     
 
 def plot_posterior(bounds,gp,X,Y,count):
     noise='Noisy' # Noisy or Noiseless
-    x1 = np.linspace(-5,10,100)
-    x2 = np.linspace(0,15,100)
+    x1 = np.linspace(-3,1,100)
+    x2 = np.linspace(-3,1,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Branin()
+    objective=functions.Shubert()
     y=objective.func(t)
     mu, y_var = gp.predict(t)
     std=np.sqrt(y_var)
