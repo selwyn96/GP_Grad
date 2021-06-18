@@ -384,7 +384,7 @@ class cos:
 class sincos:
     def __init__(self,noise=False,noise_std=0):
         self.input_dim=2
-        self.bounds={'x': (3,12 ), 'y': (3,12)}
+        self.bounds={'x': (3,12), 'y': (3,12)}
         self.name='sincos'
         self.noise=noise
         self.noise_std=noise_std
@@ -417,7 +417,7 @@ class sincos:
         noise_val=0
         if self.noise==True:
             noise_val = np.random.normal(0,self.noise_std,n).reshape(n,1)
-        out =  ((np.sin(X1)*np.sin(X2))/np.sqrt(X1*X2))+noise_val
+        out =  (X1*X2*np.sin(X1)*np.cos(X2))+noise_val+noise_val
         out=np.squeeze(out)
         return out
 # ((np.sin(X1)*np.sin(X2))/np.sqrt(X1*X2))+noise_val SinxSiny

@@ -53,6 +53,8 @@ def unique_rows(a):
 
 class Momentum(object):
     def __init__ (self):
+      self.last_seen_val=[]
+      self.counter=[]
       self.momentum=0
       self.m=0
       self.v=0
@@ -60,6 +62,17 @@ class Momentum(object):
       self.min_1=0
       self.max_2=0
       self.min_2=0
+      self.grad=0
+    def save_grad(self,grad):
+      self.grad=grad
+    def return_grad(self):
+      return(self.grad)
+    def save_value(self,value,counter):
+      self.last_seen_val=value
+      self.counter=counter
+    def return_value(self):
+      return(self.last_seen_val,self.counter)
+
     def save_moment(self,momentum):
       self.momentum=momentum
     def return_moment(self):
@@ -69,6 +82,13 @@ class Momentum(object):
       self.v=v
     def return_m_v(self):
       return(self.m,self.v)
+    def max_min(self):
+      return(self.max_1,self.min_1,self.max_2,self.min_2)
+    def get_max_min(self,max_1,min_1,max_2,min_2):
+      self.max_1=max_1
+      self.min_1=min_1
+      self.max_2=max_2
+      self.min_2=min_2
     def perform_transform(self,mean_1,mean_2):
       if(mean_1>=0):
         if(mean_1>self.max_1):
@@ -159,11 +179,11 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     else:
       noise='Noisless'
   #  creating meshgrid to plot over entire range
-    x1 = np.linspace(3,12,100)
-    x2 = np.linspace(3,12,100)
+    x1 = np.linspace(-4,4,100)
+    x2 = np.linspace(-4,4,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.sincos()
+    objective=functions.Kean()
     y=objective.func(t)
     
     # mean and var for D=0 and D=1
@@ -218,7 +238,7 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
   #   plt.show()      
   
     fig,(ax5)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
-    im6=ax5.contour(X1, X2, y.reshape(X1.shape),10,cmap='PuBuGn')
+    im6=ax5.contour(X1, X2, y.reshape(X1.shape),20,cmap='PuBuGn')
     fig.colorbar(im6, ax=ax5)
     ax5.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
     max_index = t[np.argwhere(y == np.amax(y)).flatten().tolist()]
@@ -226,18 +246,18 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     ax5.plot(max_index[:,0],max_index[:,1], 'x',markersize=6,  color='red',alpha=0.8)
     ax5.plot(X[len(X)-1][0],X[len(X)-1][1], 'ok',markersize=6,  color='red',alpha=0.8)
     ax5.title.set_text('Function Plot')
-    filename = 'SinCos_Function_'+str(count)+'_'+noise+'.png'
+    filename = 'Branin_Function_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     
 
 def plot_posterior(bounds,gp,X,Y,count):
     noise='Noisy' # Noisy or Noiseless
-    x1 = np.linspace(-3,1,100)
-    x2 = np.linspace(-3,1,100)
+    x1 = np.linspace(-5,10,100)
+    x2 = np.linspace(0,15,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Shubert()
+    objective=functions.Branin()
     y=objective.func(t)
     mu, y_var = gp.predict(t)
     std=np.sqrt(y_var)

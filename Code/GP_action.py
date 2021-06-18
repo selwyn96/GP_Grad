@@ -58,6 +58,7 @@ class GP_action:
           self.Noise=Noise
           self.Noise_level=Noise_level
           self.Noise_S=Noise_level
+          self.improv_counter=0
           
 
       
@@ -115,12 +116,12 @@ class GP_action:
           if(self.count==0):  # creating object that saves the momentum values
                self.obj=Momentum()  
 
-          y_max=max(self.Y_S)
-          no_val_samp=len(self.Y_S) # For gpucb Beta 
+          y_max=max(self.Y)
+          no_val_samp=len(self.Y) # For gpucb Beta 
           start_opt=time.time()
           # X_val is the new point that is sampled 
           if(self.acq_name=='random' or self.acq_name=='TS' or self.acq_name=='MES' or self.acq_name=='GD'):
-               objects =methods(self.acq_name,self.bounds,gp_grad_0,gp_grad_1,self.obj,self.Y,self.X[len(self.X)-1],self.count)
+               objects =methods(self.acq_name,self.bounds,self.gp,gp_grad_0,gp_grad_1,self.obj,self.Y,self.X[len(self.X)-1],self.count,self.improv_counter)
                x_val=objects.method_val()
           else:
                x_val= optimise_acq_func(model=self.gp,bounds=self.bounds,y_max=y_max,sample_count=no_val_samp,acq_name=self.acq_name)
@@ -132,8 +133,14 @@ class GP_action:
           
            # Saving new values of X, Y 
        #   x_val_ori=self.Xscaler.inverse_transform(np.reshape(x_val,(-1,self.dim)))
+
           x_val_ori=x_val
-        
+          if(self.func(x_val_ori)-np.max(self.Y)>0.001 or self.improv_counter>=10):
+               self.improv_counter=0
+          else:
+               self.improv_counter=self.improv_counter+1
+          print(self.improv_counter)
+         
           y_actual= self.func(x_val_ori) 
           self.X_S = np.vstack((self.X_S, x_val.reshape((1, -1))))
           self.X=np.vstack((self.X, x_val_ori))

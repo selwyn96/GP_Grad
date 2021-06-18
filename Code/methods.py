@@ -11,11 +11,13 @@ from torch.quasirandom import SobolEngine
 from utils import unique_rows
 from Gaussian import GaussianProcess
 import math 
+from scipy.stats import norm
+
 
 class methods(object):
     # Contain additional acq functions (slightly more complex ones)
 
-    def __init__(self, acq_name,bounds,model,model_1,obj,Y,X,Count):
+    def __init__(self, acq_name,bounds,model_gp,model,model_1,obj,Y,X,Count,improv_counter):
 
             self.acq_name = acq_name
             self.bounds=bounds
@@ -30,7 +32,9 @@ class methods(object):
             self.Y=Y
             self.present_val=X
             self.count=Count
+            self.improv_counter=improv_counter
             self.obj=obj
+            self.model_gp=model_gp
 
     
     def method_val(self):
@@ -56,13 +60,23 @@ class methods(object):
     # Gradient descent algo
 
     def _GD(self):
-        LR=0.2
-      #  LR=0.01+0.5*(0.1-0.01)*(1+math.cos((self.count/20)*math.pi))
+        m=5 # number of local searches
+        LR=0.4
+    #    LR=0.1+0.5*(0.5-0.1)*(1+math.cos((self.count/20)*math.pi))
         print(LR)
         if(self.count==0):
-                starting_point=self.find_initial_point()
+            starting_point=self.find_initial_point()
+         #   starting_points=np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( m, self.bounds.shape[0]))
+         #   counter=np.z
         else:
                 starting_point=self.present_val
+                print(np.abs(self.obj.return_grad()))
+                if(all(x<0.1 for x in np.abs(self.obj.return_grad())) or self.improv_counter>=10):
+                    starting_point=self._TS()
+                   
+                    
+
+                 #   starting_point=self._TS()
 
         if self.dim==1:
          #   mean, var = self.model.predict(starting_point+0.9*self.obj.return_moment())
@@ -72,15 +86,36 @@ class methods(object):
             self.obj.save_moment(new_momentum)
 
         elif self.dim==2: 
-         #   mean_1=np.average(self.model.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten())
-        #    mean_2=np.average(self.model_1.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten())
-            mean_1=np.average(self.model.sample(starting_point,size=2).flatten())
-            mean_2=np.average(self.model_1.sample(starting_point,size=2).flatten())
-         #   mean_1, var_1 = self.model.predict(starting_point)
+        #   mean_1, var_1 = self.model.predict(starting_point)
          #   mean_2, var_2 = self.model_1.predict(starting_point)
-            mean_1,mean_2=self.obj.perform_transform(mean_1,mean_2)
-            print(mean_1,mean_2)
-            mean=np.append(mean_1.item(), mean_2.item())
+            mean_test=[]
+            for i in range(0,10):
+                mean_1=np.average(self.model.sample(starting_point,size=1).flatten())
+                mean_2=np.average(self.model_1.sample(starting_point,size=1).flatten())
+                max_1,min_1,max_2,min_2=self.obj.max_min()
+             #   mean_1,mean_2=self.obj.perform_transform(mean_1,mean_2)
+             #   self.obj.get_max_min(max_1,min_1,max_2,min_2)
+                mean=np.append(mean_1.item(), mean_2.item())
+                mean=np.tanh(mean)
+                if(i==0):
+                    mean_test=mean
+                else:
+                    mean_test=np.vstack((mean_test,mean))
+            new_x=starting_point+LR*mean_test
+            mean, var = self.model_gp.predict(new_x)
+            std=np.sqrt(var)
+            a = (mean - np.max(self.Y))
+            z = a / std
+            improve= a * norm.cdf(z) + std * norm.pdf(z)
+        #   improve= mean + np.sqrt(np.log(self.count+3)) * np.sqrt(var)
+            index=np.random.choice(np.where(improve == improve.max())[0])
+            print(mean_test[index])
+            self.obj.save_grad(mean_test[index])
+          #  mean_1,mean_2=self.obj.perform_transform(mean_test[index][0],mean_test[index][1])
+        
+        return np.clip(new_x[index], self.bounds[:, 0],self.bounds[:, 1])
+
+
       #      m,v=self.obj.return_m_v()
       #      m_new=0.9*m+(1-0.9)*mean
       #      v_new=0.999*v+(1-0.999)*np.square(mean)
@@ -91,10 +126,8 @@ class methods(object):
       #      new_x=starting_point+LR*((m_hat/(np.sqrt(v_hat)+1e-8)))
 
         #    new_momentum=0.9*self.obj.return_moment()+LR*mean
-            new_x=starting_point+LR*mean
+         #   new_x=starting_point+LR*mean
          #   self.obj.save_moment(new_momentum)
-        return np.clip(new_x, self.bounds[:, 0],self.bounds[:, 1])
-
 
     def find_initial_point(self):
         x_tries = np.random.uniform(self.bounds[:, 0],self.bounds[:, 1],size=(1000, self.bounds.shape[0]))
@@ -126,11 +159,14 @@ class methods(object):
     # Thompsons sampling
     # Each sampled function is discrete (10000 points)
     def _TS(self):
-        coordinates= self.sobol.draw(1000).cpu().numpy() * (self.ub - self.lb) + self.lb
+        coordinates= self.sobol.draw(5000).cpu().numpy() * (self.ub - self.lb) + self.lb
         X_tries=coordinates
-        samples = self.model.sample(X_tries,size=1)
-        index=np.argmax(samples)
+    #    samples = self.model_gp.sample(X_tries,size=1)
+        mean, var = self.model_gp.predict(X_tries)
+        samples=mean + np.sqrt(np.log(self.count+3)) * np.sqrt(var)
+        index=np.random.choice(np.where(samples == samples.max())[0])
         return(X_tries[index])
+
     
     # Gumble sampling for sampling max values in MES
     def sample_maxes_G(self):
