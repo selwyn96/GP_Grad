@@ -60,7 +60,7 @@ class methods(object):
     
     def _GD(self):
         m=5 # number of local searches
-        LR=0.15
+        LR=0.1
 
         if(self.count==0):
             starting_point=self.X[-m:]
