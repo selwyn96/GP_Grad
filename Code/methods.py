@@ -30,7 +30,7 @@ class methods(object):
             self.center=(self.lb +self.ub)/2 # The center of the unit domain, used for Satisfying TS
             self.n_samples=1000
             self.Y=Y
-            self.present_val=X
+            self.X=X
             self.count=Count
             self.improv_counter=improv_counter
             self.obj=obj
@@ -56,78 +56,150 @@ class methods(object):
         x= np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( 1, self.bounds.shape[0]))[0]
         print(x)
         return x
-    
-    # Gradient descent algo
 
+    
     def _GD(self):
         m=5 # number of local searches
-        LR=0.4
-    #    LR=0.1+0.5*(0.5-0.1)*(1+math.cos((self.count/20)*math.pi))
-        print(LR)
+        LR=0.15
+
         if(self.count==0):
-            starting_point=self.find_initial_point()
-         #   starting_points=np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( m, self.bounds.shape[0]))
-         #   counter=np.z
-        else:
-                starting_point=self.present_val
-                print(np.abs(self.obj.return_grad()))
-                if(all(x<0.1 for x in np.abs(self.obj.return_grad())) or self.improv_counter>=10):
-                    starting_point=self._TS()
-                   
-                    
+            starting_point=self.X[-m:]
+            reset_counter=np.zeros(m)
+            max_value=self.Y
+        else:    
+            starting_point,reset_counter,last_UCB,max_value,last_m=self.obj.return_value()
 
-                 #   starting_point=self._TS()
+            if(self.Y[len(self.Y)-1]<(max_value[last_m]+0.001)):
+                reset_counter[last_m]=reset_counter[last_m]+1
+            
+            if(self.Y[len(self.Y)-1]>max_value[last_m]):
+                max_value[last_m]=self.Y[len(self.Y)-1]
 
-        if self.dim==1:
-         #   mean, var = self.model.predict(starting_point+0.9*self.obj.return_moment())
-            mean = self.model.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten()
-            new_momentum=0.9*self.obj.return_moment()+LR*mean
-            new_x=starting_point+new_momentum
-            self.obj.save_moment(new_momentum)
+            if(self.improv_counter>=10):
+                new_val=self._TS()
+                index=np.random.choice(np.where(last_UCB == last_UCB.min())[0])
+                starting_point[index]=new_val
+                max_value[index]=float('-inf')
+                reset_counter[index]=0
+               
+            if(reset_counter[last_m]>=5 or all(x<0.01 for x in np.abs(self.obj.return_grad()))):
+                new_val=self._TS()
+                starting_point[last_m]=new_val
+                max_value[last_m]=float('-inf')
+                reset_counter[last_m]=0
+               
+                
 
-        elif self.dim==2: 
-        #   mean_1, var_1 = self.model.predict(starting_point)
-         #   mean_2, var_2 = self.model_1.predict(starting_point)
-            mean_test=[]
-            for i in range(0,10):
-                mean_1=np.average(self.model.sample(starting_point,size=1).flatten())
-                mean_2=np.average(self.model_1.sample(starting_point,size=1).flatten())
-                max_1,min_1,max_2,min_2=self.obj.max_min()
-             #   mean_1,mean_2=self.obj.perform_transform(mean_1,mean_2)
-             #   self.obj.get_max_min(max_1,min_1,max_2,min_2)
-                mean=np.append(mean_1.item(), mean_2.item())
-                mean=np.tanh(mean)
-                if(i==0):
-                    mean_test=mean
-                else:
-                    mean_test=np.vstack((mean_test,mean))
-            new_x=starting_point+LR*mean_test
+
+
+        # Global search
+        UCB=[]
+        for i in range(0,m):
+            mean_1=self.model.sample(starting_point[i],size=10).flatten()
+            mean_2=self.model_1.sample(starting_point[i],size=10).flatten()
+            mean=np.vstack(zip(mean_1, mean_2))
+            mean=np.tanh(mean)
+            new_x=starting_point[i]+LR*mean
             mean, var = self.model_gp.predict(new_x)
+          #  beta=np.log(self.count+1)
+         #   improve= mean + np.sqrt(beta) * np.sqrt(var)
             std=np.sqrt(var)
             a = (mean - np.max(self.Y))
             z = a / std
             improve= a * norm.cdf(z) + std * norm.pdf(z)
-        #   improve= mean + np.sqrt(np.log(self.count+3)) * np.sqrt(var)
             index=np.random.choice(np.where(improve == improve.max())[0])
-            print(mean_test[index])
-            self.obj.save_grad(mean_test[index])
-          #  mean_1,mean_2=self.obj.perform_transform(mean_test[index][0],mean_test[index][1])
+            UCB=np.append(UCB,improve[index])
+        val_to_continue=np.random.choice(np.where(UCB == UCB.max())[0])
+        
+        # Local search
+        mean_test=[]
+        print(val_to_continue)
+        for i in range(0,10):
+            mean_1=np.average(self.model.sample(starting_point[val_to_continue],size=1).flatten())
+            mean_2=np.average(self.model_1.sample(starting_point[val_to_continue],size=1).flatten())
+            mean=np.append(mean_1.item(), mean_2.item())
+            mean=np.tanh(mean)
+            if(i==0):
+                mean_test=mean
+            else:
+                mean_test=np.vstack((mean_test,mean))
+            new_x=starting_point[val_to_continue]+LR*mean_test
+            mean, var = self.model_gp.predict(new_x)
+            std=np.sqrt(var)
+        #    a = (mean - np.max(self.Y))
+        #    z = a / std
+        #    improve= a * norm.cdf(z) + std * norm.pdf(z)
+            z = (mean - np.max(self.Y))/(std)
+            improve= norm.cdf(z)
+            index=np.random.choice(np.where(improve == improve.max())[0])
+        starting_point[val_to_continue]=np.clip(new_x[index], self.bounds[:, 0],self.bounds[:, 1])
+        self.obj.save_grad(mean_test[index])
+
+        self.obj.save_value(starting_point,reset_counter,UCB,max_value,val_to_continue)
         
         return np.clip(new_x[index], self.bounds[:, 0],self.bounds[:, 1])
 
 
-      #      m,v=self.obj.return_m_v()
-      #      m_new=0.9*m+(1-0.9)*mean
-      #      v_new=0.999*v+(1-0.999)*np.square(mean)
-      #      self.obj.save_m_v(m_new,v_new)
-      #      m_hat=m_new/(1-0.9**(self.count+1))
-      #      v_hat=v_new/(1-0.999**(self.count+1))
-      #      print(LR*((m_hat/(np.sqrt(v_hat)+1e-8))))
-      #      new_x=starting_point+LR*((m_hat/(np.sqrt(v_hat)+1e-8)))
+        
+    
+    # Gradient descent algo
 
-        #    new_momentum=0.9*self.obj.return_moment()+LR*mean
-         #   new_x=starting_point+LR*mean
-         #   self.obj.save_moment(new_momentum)
+    # def _GD(self):
+    #     m=5 # number of local searches
+    #     LR=0.1
+    # #    LR=0.1+0.5*(0.5-0.1)*(1+math.cos((self.count/20)*math.pi))
+    #     if(self.count==0):
+    #         starting_point=self.find_initial_point()
+    #      #   starting_points=np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( m, self.bounds.shape[0]))
+    #     else:
+    #             starting_point=self.present_val
+    #             if(all(x<0.1 for x in np.abs(self.obj.return_grad())) or self.improv_counter>=10):
+    #                 starting_point=self._TS()
+                   
+                    
+
+    #              #   starting_point=self._TS()
+
+    #     if self.dim==1:
+    #      #   mean, var = self.model.predict(starting_point+0.9*self.obj.return_moment())
+    #         mean = self.model.sample(starting_point+0.9*self.obj.return_moment(),size=1).flatten()
+    #         new_momentum=0.9*self.obj.return_moment()+LR*mean
+    #         new_x=starting_point+new_momentum
+    #         self.obj.save_moment(new_momentum)
+
+    #     elif self.dim==2: 
+    #     #   mean_1, var_1 = self.model.predict(starting_point)
+    #      #   mean_2, var_2 = self.model_1.predict(starting_point)
+    #         mean_test=[]
+    #         for i in range(0,20):
+    #             mean_1=np.average(self.model.sample(starting_point,size=1).flatten())
+    #             mean_2=np.average(self.model_1.sample(starting_point,size=1).flatten())
+    #          #   mean_1,mean_2=self.obj.perform_transform(mean_1,mean_2)
+    #          #   self.obj.get_max_min(max_1,min_1,max_2,min_2)
+    #             mean=np.append(mean_1.item(), mean_2.item())
+    #             mean=np.tanh(mean)
+    #             if(i==0):
+    #                 mean_test=mean
+    #             else:
+    #                 mean_test=np.vstack((mean_test,mean))
+    #         new_x=starting_point+LR*mean_test
+    #         mean, var = self.model_gp.predict(new_x)
+    #         std=np.sqrt(var)
+    #         a = (mean - np.max(self.Y))
+    #         z = a / std
+    #         improve= a * norm.cdf(z) + std * norm.pdf(z)
+    #      #   z = (mean - np.max(self.Y))/(std)
+    #      #   improve= norm.cdf(z)
+    #         index=np.random.choice(np.where(improve == improve.max())[0])
+    #         self.obj.save_grad(mean_test[index])
+    #       #  mean_1,mean_2=self.obj.perform_transform(mean_test[index][0],mean_test[index][1])
+        
+    #     return np.clip(new_x[index], self.bounds[:, 0],self.bounds[:, 1])
+
+        
+
+
+
 
     def find_initial_point(self):
         x_tries = np.random.uniform(self.bounds[:, 0],self.bounds[:, 1],size=(1000, self.bounds.shape[0]))
@@ -161,7 +233,7 @@ class methods(object):
     def _TS(self):
         coordinates= self.sobol.draw(5000).cpu().numpy() * (self.ub - self.lb) + self.lb
         X_tries=coordinates
-    #    samples = self.model_gp.sample(X_tries,size=1)
+     #   samples = self.model_gp.sample(X_tries,size=1)
         mean, var = self.model_gp.predict(X_tries)
         samples=mean + np.sqrt(np.log(self.count+3)) * np.sqrt(var)
         index=np.random.choice(np.where(samples == samples.max())[0])

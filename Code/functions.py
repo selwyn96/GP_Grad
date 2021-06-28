@@ -22,9 +22,6 @@ def synthetic_input():
     Y = np.vstack([Y_1, Y_2, Y_3, Y_4, Y_5])
     return X,Y
 
-
-
-
 class Kean:
     def __init__(self,noise=False,noise_std=0):
         self.input_dim=2
@@ -40,6 +37,29 @@ class Kean:
         n=coord.shape[0]
         out =   np.abs((np.cos(X1)**4 + np.cos(X2)**4 - 2 * (np.cos(X1)**2) * (np.cos(X2)**2))) / np.sqrt(1*X1**2 + 1.5*X2**2)
         out=np.squeeze(out)*1.5
+        if self.noise:
+            return out+np.random.normal(0,self.noise_std,n).reshape(n,1)
+        else:
+            return out
+
+class Griewank:
+    def __init__(self,noise=False,noise_std=0):
+        self.input_dim=2
+        self.bounds={'x': (-512, 512), 'y': (-512, 512)}
+        self.name='Griewank'
+        self.noise=noise
+        self.noise_std=noise_std
+    def func(self,coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+        n=coord.shape[0]
+        part1 = 0
+        for i in range(self.input_dim):
+            part1 += coord[:,i]**2
+            part2 = 1
+        for i in range(self.input_dim):
+            part2 *= np.cos((coord[:,i]) / np.sqrt(i+1))
+        out=-1*(1 + ((part1)/4000.0) -(part2))
         if self.noise:
             return out+np.random.normal(0,self.noise_std,n).reshape(n,1)
         else:

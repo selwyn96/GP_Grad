@@ -54,66 +54,26 @@ def unique_rows(a):
 class Momentum(object):
     def __init__ (self):
       self.last_seen_val=[]
-      self.counter=[]
-      self.momentum=0
-      self.m=0
-      self.v=0
-      self.max_1=0
-      self.min_1=0
-      self.max_2=0
-      self.min_2=0
+      self.reset_counter=[]
       self.grad=0
+      self.UCB=0
+      self.max_val=0
+      self.last_m=0
     def save_grad(self,grad):
       self.grad=grad
     def return_grad(self):
       return(self.grad)
-    def save_value(self,value,counter):
+
+    def save_value(self,value,counter,UCB,max_val,last_m):
       self.last_seen_val=value
-      self.counter=counter
+      self.reset_counter=counter
+      self.UCB=UCB
+      self.max_val=max_val
+      self.last_m=last_m
     def return_value(self):
-      return(self.last_seen_val,self.counter)
+      return(self.last_seen_val,self.reset_counter,self.UCB,self.max_val,self.last_m)
 
-    def save_moment(self,momentum):
-      self.momentum=momentum
-    def return_moment(self):
-      return(self.momentum)
-    def save_m_v(self,m,v):
-      self.m=m
-      self.v=v
-    def return_m_v(self):
-      return(self.m,self.v)
-    def max_min(self):
-      return(self.max_1,self.min_1,self.max_2,self.min_2)
-    def get_max_min(self,max_1,min_1,max_2,min_2):
-      self.max_1=max_1
-      self.min_1=min_1
-      self.max_2=max_2
-      self.min_2=min_2
-    def perform_transform(self,mean_1,mean_2):
-      if(mean_1>=0):
-        if(mean_1>self.max_1):
-          self.max_1=mean_1
-        X_std = (mean_1 - 0) / (self.max_1 - 0)
-        X_scaled_1 = X_std * (2- 0) + 0
-
-      if(mean_1<0):
-        if(mean_1<self.min_1):
-          self.min_1=mean_1
-        X_std = (mean_1 - 0) / (self.min_1 - 0)
-        X_scaled_1 = -1*X_std * (2 - 0) + 0
-
-      if(mean_2>=0):
-        if(mean_2>self.max_2):
-          self.max_2=mean_2
-        X_std = (mean_2 - 0) / (self.max_2 - 0)
-        X_scaled_2 = X_std * (2 - 0) + 0
-
-      if(mean_2<0):
-        if(mean_2<self.min_2):
-          self.min_2=mean_2
-        X_std = (mean_2 - 0) / (self.min_2 - 0)
-        X_scaled_2 = -1*X_std * (2 - 0) + 0
-      return(X_scaled_1,X_scaled_2)
+  
      
       
 
@@ -179,11 +139,11 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     else:
       noise='Noisless'
   #  creating meshgrid to plot over entire range
-    x1 = np.linspace(-4,4,100)
-    x2 = np.linspace(-4,4,100)
+    x1 = np.linspace(-3,1,100)
+    x2 = np.linspace(-3,1,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Kean()
+    objective=functions.Shubert()
     y=objective.func(t)
     
     # mean and var for D=0 and D=1
@@ -238,7 +198,7 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
   #   plt.show()      
   
     fig,(ax5)=plt.subplots(nrows=1, ncols=1, figsize=(6, 3), dpi=100)
-    im6=ax5.contour(X1, X2, y.reshape(X1.shape),20,cmap='PuBuGn')
+    im6=ax5.contour(X1, X2, y.reshape(X1.shape),10,cmap='PuBuGn')
     fig.colorbar(im6, ax=ax5)
     ax5.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
     max_index = t[np.argwhere(y == np.amax(y)).flatten().tolist()]
@@ -246,7 +206,7 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     ax5.plot(max_index[:,0],max_index[:,1], 'x',markersize=6,  color='red',alpha=0.8)
     ax5.plot(X[len(X)-1][0],X[len(X)-1][1], 'ok',markersize=6,  color='red',alpha=0.8)
     ax5.title.set_text('Function Plot')
-    filename = 'Branin_Function_'+str(count)+'_'+noise+'.png'
+    filename = 'Shubert_Function_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     
