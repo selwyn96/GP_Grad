@@ -165,8 +165,30 @@ class GaussianProcess(object):
         return sim_one_dim(m.flatten(), v)[:, np.newaxis, :]
     
     # Returns the covariance matrix
-    def covar(self,X):
-        return(self.mycov(X,X,self.hyper))
+#    def covar(self,X):
+ #       return(self.mycov(X,X,self.hyper))
+    
+    def sample(self,X,size):
+        m, var = self.predict(X)
+        v=self.covar(X)
+        def sim_one_dim(m, v):
+            return np.random.multivariate_normal(m, v, size).T
+        return sim_one_dim(m.flatten(), v)[:, np.newaxis, :]
+    
+    # Returns the covariance matrix
+    def covar(self,Xtest):
+        """
+        Returns Covariance matrix
+        """    
+        if len(Xtest.shape)==1: # 1d
+            Xtest=np.reshape(Xtest,(-1,self.X.shape[1]))
+       
+        KK_xTest_xTest=self.mycov(Xtest,Xtest,self.hyper)+np.eye(Xtest.shape[0])*self.noise_delta
+        KK_xTest_x=self.mycov(Xtest,self.X,self.hyper)
+        mean=np.dot(KK_xTest_x,self.alpha)
+        v=np.linalg.solve(self.L,KK_xTest_x.T)
+        var=KK_xTest_xTest-np.dot(v.T,v)
+        return  var
 
     def Hyper(self):
         return (self.hyper['var'],self.hyper['lengthscale'])

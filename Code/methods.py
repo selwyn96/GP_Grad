@@ -17,12 +17,11 @@ from scipy.stats import norm
 class methods(object):
     # Contain additional acq functions (slightly more complex ones)
 
-    def __init__(self, acq_name,bounds,model_gp,model,model_1,obj,Y,X,Count,improv_counter):
+    def __init__(self, acq_name,bounds,model_gp,model,obj,Y,X,Count,improv_counter):
 
             self.acq_name = acq_name
             self.bounds=bounds
             self.model=model
-            self.model_1=model_1
             self.dim = len(self.bounds)
             self.sobol = SobolEngine(self.dim, scramble=True)
             self.lb=np.array(self.bounds)[:,0]
@@ -60,84 +59,122 @@ class methods(object):
     
     def _GD(self):
         m=5 # number of local searches
-        LR=0.1
-
+    #    LR=2
+        max_search=0.15 # Maximum jump size
+        # LR*unit vector= candidate points from which to search
+        LR=np.sort(np.random.uniform(0, max_search,size=50)) # For local point selection
+        LR2=np.sort(np.random.uniform(0, max_search,size=10)) # For Global selection 
+       
+       # Initialisation of the GD algo
         if(self.count==0):
-            starting_point=self.X[-m:]
-            reset_counter=np.zeros(m)
-            max_value=self.Y
+            starting_point=self.X[-m:]  # chose the last m points initially to start
+            reset_counter=np.zeros(m)   # reset_counter is used for local resets
+            max_value=self.Y[-m:]       # max values in each local search
         else:    
-            starting_point,reset_counter,last_UCB,max_value,last_m=self.obj.return_value()
+            starting_point,reset_counter,last_UCB,max_value,last_m=self.obj.return_value() # Keeping a track of values from previous iterations
 
-            if(self.Y[len(self.Y)-1]<(max_value[last_m]+0.001)):
+            # update counter if the sampled value isnt greater than local max by 2%
+            if(self.Y[len(self.Y)-1]<(max_value[last_m]+0.02*max_value[last_m])):
                 reset_counter[last_m]=reset_counter[last_m]+1
             
+            # update new local max
             if(self.Y[len(self.Y)-1]>max_value[last_m]):
                 max_value[last_m]=self.Y[len(self.Y)-1]
 
-            if(self.improv_counter>=10):
+            # Global reset (search with lowest UCB from the last iteration is reset)
+            if(self.improv_counter>=5):
                 new_val=self._TS()
                 index=np.random.choice(np.where(last_UCB == last_UCB.min())[0])
                 starting_point[index]=new_val
                 max_value[index]=float('-inf')
                 reset_counter[index]=0
-               
-            if(reset_counter[last_m]>=5 or all(x<0.01 for x in np.abs(self.obj.return_grad()))):
+            
+            # Local reset (counter check + check if all gradients are above a min value)
+            if(reset_counter[last_m]>=5 or all(x<0.0001 for x in np.abs(self.obj.return_grad()))):
                 new_val=self._TS()
                 starting_point[last_m]=new_val
                 max_value[last_m]=float('-inf')
                 reset_counter[last_m]=0
                
-                
-
-
-
         # Global search
         UCB=[]
         for i in range(0,m):
-            mean_1=self.model.sample(starting_point[i],size=10).flatten()
-            mean_2=self.model_1.sample(starting_point[i],size=10).flatten()
-            mean=np.vstack(zip(mean_1, mean_2))
-            mean=np.tanh(mean)
-            new_x=starting_point[i]+LR*mean
-            mean, var = self.model_gp.predict(new_x)
-          #  beta=np.log(self.count+1)
-         #   improve= mean + np.sqrt(beta) * np.sqrt(var)
-            std=np.sqrt(var)
-            a = (mean - np.max(self.Y))
-            z = a / std
-            improve= a * norm.cdf(z) + std * norm.pdf(z)
-            index=np.random.choice(np.where(improve == improve.max())[0])
-            UCB=np.append(UCB,improve[index])
+            mean_temp=np.array([])
+            for l in range(0,10): # 10 candidate unit vectors for each m are compared
+                tempo=np.array([])
+                for ob in self.model: # ob is a list containing all the grad_gp objects for different D values
+                    temp_val=np.average(ob.sample(starting_point[i],size=5)) 
+                    tempo=np.append(tempo,temp_val.flatten())
+                l2=np.sum(np.power((tempo),2))**(0.5)
+                tempo=tempo/l2 # unit vector 
+                if(l==0):
+                    mean_temp=tempo
+                else:
+                    mean_temp=np.vstack((mean_temp,tempo))
+            mean= mean_temp
+            
+
+            #    mean=np.tanh(mean)
+            UCB_temp=[]
+            # At a global level EI/UCB is values are used to select which GD search to continue
+            for j in range(0,10):
+                mean_used=LR2[j]*mean
+                new_x=starting_point[i]+mean_used
+                mean, var = self.model_gp.predict(new_x)
+           #     beta=np.log(self.count+1)
+           #     improve= mean + np.sqrt(beta) * np.sqrt(var)
+                std=np.sqrt(var)
+                a = (mean - np.max(self.Y)-0.1)
+                z = a / std
+                improve= a * norm.cdf(z) + std * norm.pdf(z)
+                index=np.random.choice(np.where(improve == improve.max())[0])
+                UCB_temp=np.append(UCB_temp,improve[index])
+            
+            index=np.random.choice(np.where(UCB_temp ==  UCB_temp.max())[0])
+            UCB=np.append(UCB,UCB_temp[index])
         val_to_continue=np.random.choice(np.where(UCB == UCB.max())[0])
         
         # Local search
         mean_test=[]
-        print(val_to_continue)
         for i in range(0,10):
-            mean_1=np.average(self.model.sample(starting_point[val_to_continue],size=1).flatten())
-            mean_2=np.average(self.model_1.sample(starting_point[val_to_continue],size=1).flatten())
-            mean=np.append(mean_1.item(), mean_2.item())
-            mean=np.tanh(mean)
+            mean=np.array([])
+            for ob in self.model:
+                mean_temp=np.average(ob.sample(starting_point[val_to_continue],size=5))
+                mean=np.append(mean,mean_temp.flatten())
+            #    mean=np.append(mean,ob.sample(starting_point[val_to_continue],size=1).flatten().item())
+                 
+            l2=np.sum(np.power((mean),2))**(0.5)
+            mean=mean/l2
+         #   mean=np.tanh(mean)
             if(i==0):
                 mean_test=mean
             else:
                 mean_test=np.vstack((mean_test,mean))
-            new_x=starting_point[val_to_continue]+LR*mean_test
+        index_values=[]
+        EI=[]
+        # At the local level mean is used to select which point to sample in the local search
+        for j in range(0,50):
+            mean_used=LR[j]*mean_test
+            new_x=starting_point[val_to_continue]+mean_used
             mean, var = self.model_gp.predict(new_x)
             std=np.sqrt(var)
-        #    a = (mean - np.max(self.Y))
+         #   a = (mean - np.max(self.Y))
         #    z = a / std
         #    improve= a * norm.cdf(z) + std * norm.pdf(z)
-            z = (mean - np.max(self.Y))/(std)
-            improve= norm.cdf(z)
+        #    z = (mean - np.max(self.Y)-0.01)/(std)
+         #   improve= norm.cdf(z)
+            improve=mean
             index=np.random.choice(np.where(improve == improve.max())[0])
-        starting_point[val_to_continue]=np.clip(new_x[index], self.bounds[:, 0],self.bounds[:, 1])
-        self.obj.save_grad(mean_test[index])
-
+            EI=np.append(EI,improve[index])
+            index_values=np.append(index_values,index)
+        index_j=np.random.choice(np.where(EI == EI.max())[0])
+        index_i=index_values[index_j]
+        return_value=starting_point[val_to_continue]+LR[index_j]*mean_test[int(index_i)]
+        starting_point[val_to_continue]=np.clip(return_value, self.bounds[:, 0],self.bounds[:, 1])
+        self.obj.save_grad(LR[index_j]*mean_test[int(index_i)])
         self.obj.save_value(starting_point,reset_counter,UCB,max_value,val_to_continue)
         
-        return np.clip(new_x[index], self.bounds[:, 0],self.bounds[:, 1])
+        return np.clip(return_value, self.bounds[:, 0],self.bounds[:, 1])
 
 
         
@@ -231,6 +268,13 @@ class methods(object):
     # Thompsons sampling
     # Each sampled function is discrete (10000 points)
     def _TS(self):
+        coordinates= self.sobol.draw(2000).cpu().numpy() * (self.ub - self.lb) + self.lb
+        X_tries=coordinates
+        samples = self.model_gp.sample(X_tries,size=1)
+        index=np.random.choice(np.where(samples == samples.max())[0])
+        return(X_tries[index])
+    
+    def _Restart(self):
         coordinates= self.sobol.draw(5000).cpu().numpy() * (self.ub - self.lb) + self.lb
         X_tries=coordinates
      #   samples = self.model_gp.sample(X_tries,size=1)

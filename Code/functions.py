@@ -85,7 +85,7 @@ class Shubert:
         for i in range(5):
             out_1 += (i + 1) * np.sin((i + 2) * X2 + (i + 1))
         
-        out=(out_0 * out_1 + 220)/200
+        out=np.squeeze((out_0 * out_1 + 220)/200)
         if self.noise:
             return out+np.random.normal(0,self.noise_std,n).reshape(n,1)
         else:
@@ -193,19 +193,7 @@ class Hartmann_6:
             y[i] = -outer
         return -y[0]
 
-class Ackley:
-    def __init__(self):
-        self.input_dim=2
-        self.bounds={'x': (-32.768, 32.768), 'y': (-32.768, 32.768)}
-        self.name='Ackley'
-    def func(self,coord):
-        firstSum = 0.0
-        secondSum = 0.0
-        for c in coord:
-            firstSum += c**2.0
-            secondSum += math.cos(2.0*math.pi*c)
-        n = float(len(coord))
-        return 20.0*math.exp(-0.2*math.sqrt(firstSum/n)) - math.exp(secondSum/n) + 20 + math.e
+
    
 class Rosenbrock:
     def __init__(self):
@@ -215,20 +203,39 @@ class Rosenbrock:
     def func(self,coord):
         return -1 * sum(100.0*(coord[1:]-coord[:-1]**2.0)**2.0 + (1-coord[:-1])**2.0)
 
-
+class Ackley:
+    def __init__(self):
+        self.input_dim=2
+        self.bounds={'x': (-32.768, 32.768), 'y': (-32.768, 32.768)}
+        self.name='Ackley'
+    def func(self,coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+        firstSum = 0.0
+        secondSum = 0.0
+        for i in range(0,self.input_dim):
+            c=coord[:,i]
+            firstSum += c**2.0
+            secondSum += np.cos(2.0*math.pi*c)
+        n = float(self.input_dim)
+        return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) - np.exp(secondSum/n) + 20 + math.e)
+        
 class Ackley_6:
     def __init__(self):
         self.input_dim=6
         self.bounds={'x': (-32.768, 32.768), 'y': (-32.768, 32.768),'z': (-32.768, 32.768),'a': (-32.768, 32.768),'b': (-32.768, 32.768),'c': (-32.768, 32.768)}
         self.name='Ackley_6'
     def func(self,coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
         firstSum = 0.0
         secondSum = 0.0
-        for c in coord:
+        for i in range(0,self.input_dim):
+            c=coord[:,i]
             firstSum += c**2.0
-            secondSum += math.cos(2.0*math.pi*c)
-        n = float(len(coord))
-        return 20.0*math.exp(-0.2*math.sqrt(firstSum/n)) - math.exp(secondSum/n) + 20 + math.e
+            secondSum += np.cos(2.0*math.pi*c)
+        n = float(self.input_dim)
+        return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) - np.exp(secondSum/n) + 20 + math.e)
 
 
 class Schwefel:

@@ -139,8 +139,8 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     else:
       noise='Noisless'
   #  creating meshgrid to plot over entire range
-    x1 = np.linspace(-3,1,100)
-    x2 = np.linspace(-3,1,100)
+    x1 = np.linspace(-3, 1,100)
+    x2 = np.linspace(-3, 1,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
     objective=functions.Shubert()
@@ -206,7 +206,7 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     ax5.plot(max_index[:,0],max_index[:,1], 'x',markersize=6,  color='red',alpha=0.8)
     ax5.plot(X[len(X)-1][0],X[len(X)-1][1], 'ok',markersize=6,  color='red',alpha=0.8)
     ax5.title.set_text('Function Plot')
-    filename = 'Shubert_Function_'+str(count)+'_'+noise+'.png'
+    filename = 'Ackley_Function_'+str(count)+'_'+noise+'.png'
     plt.savefig('2D_Plots/'+filename)
     plt.show()
     
