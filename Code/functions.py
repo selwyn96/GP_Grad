@@ -219,11 +219,14 @@ class Ackley:
             secondSum += np.cos(2.0*math.pi*c)
         n = float(self.input_dim)
         return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) - np.exp(secondSum/n) + 20 + math.e)
+
+
         
 class Ackley_6:
     def __init__(self):
-        self.input_dim=6
-        self.bounds={'x': (-32.768, 32.768), 'y': (-32.768, 32.768),'z': (-32.768, 32.768),'a': (-32.768, 32.768),'b': (-32.768, 32.768),'c': (-32.768, 32.768)}
+        self.input_dim=20
+     #   self.bounds={'x': (-32.768, 32.768), 'y': (-32.768, 32.768),'z': (-32.768, 32.768),'a': (-32.768, 32.768),'b': (-32.768, 32.768),'c': (-32.768, 32.768)}
+        self.bounds=[(-1,3)]*self.input_dim
         self.name='Ackley_6'
     def func(self,coord):
         if(coord.ndim==1):
@@ -236,6 +239,45 @@ class Ackley_6:
             secondSum += np.cos(2.0*math.pi*c)
         n = float(self.input_dim)
         return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) - np.exp(secondSum/n) + 20 + math.e)
+
+
+class Levy_10:
+    def __init__(self):
+        self.dim = 10
+        self.bounds={'x': (-2,2), 'y': (-2,2),'z': (-2,2),'a': (-2,2),'b':(-2,2),'c': (-2,2),'d': (-2,2),'e': (-2,2),'f': (-2,2),'g':(-2,2)}
+        self.name='Levy_10'
+  
+    def func(self, coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+
+        first = 1 + (coord[:,0]- 1.0) / 4.0
+        last=1 + (coord[:,9]- 1.0) / 4.0
+        constant= np.sin(np.pi * first) ** 2
+        sum_val=0
+        for i in range(0,9):
+            w= 1 + (coord[:,i]- 1.0) / 4.0
+            sum_val=sum_val+ (w - 1) ** 2 * (1 + 10 * np.sin(np.pi * w + 1) ** 2) + (last - 1) ** 2 * (1 + np.sin(2 * np.pi * w)**2)
+        
+        output=constant+sum_val
+        return np.squeeze(-1*output)
+
+class Rastrigin:
+    def __init__(self):
+        self.dim = 10
+        self.bounds=[(-1,1)]*self.dim
+        self.name='Rastrigin'
+  
+    def func(self, coord):
+        if(coord.ndim==1):
+            coord=coord[np.newaxis,:]
+
+        first = 10*self.dim
+        sum_val=0
+        for i in range(0,self.dim):
+            sum_val=sum_val+(coord[:,i]**2 - 10 * np.cos(2*np.pi*coord[:,i]))
+        output=first+sum_val
+        return np.squeeze(-1*output)
 
 
 class Schwefel:

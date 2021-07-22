@@ -167,13 +167,7 @@ class GaussianProcess(object):
     # Returns the covariance matrix
 #    def covar(self,X):
  #       return(self.mycov(X,X,self.hyper))
-    
-    def sample(self,X,size):
-        m, var = self.predict(X)
-        v=self.covar(X)
-        def sim_one_dim(m, v):
-            return np.random.multivariate_normal(m, v, size).T
-        return sim_one_dim(m.flatten(), v)[:, np.newaxis, :]
+
     
     # Returns the covariance matrix
     def covar(self,Xtest):

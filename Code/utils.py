@@ -59,19 +59,25 @@ class Momentum(object):
       self.UCB=0
       self.max_val=0
       self.last_m=0
+      self.X_TS=[]
+      self.index=[]
+      self.Y_TS=[]
     def save_grad(self,grad):
       self.grad=grad
     def return_grad(self):
       return(self.grad)
 
-    def save_value(self,value,counter,UCB,max_val,last_m):
+    def save_value(self,value,counter,UCB,max_val,last_m,X_TS,Y_TS,index):
       self.last_seen_val=value
       self.reset_counter=counter
       self.UCB=UCB
       self.max_val=max_val
       self.last_m=last_m
+      self.X_TS=X_TS
+      self.Y_TS=Y_TS
+      self.index=index
     def return_value(self):
-      return(self.last_seen_val,self.reset_counter,self.UCB,self.max_val,self.last_m)
+      return(self.last_seen_val,self.reset_counter,self.UCB,self.max_val,self.last_m,self.X_TS,self.Y_TS,self.index)
 
   
      
@@ -139,11 +145,11 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     else:
       noise='Noisless'
   #  creating meshgrid to plot over entire range
-    x1 = np.linspace(-3, 1,100)
-    x2 = np.linspace(-3, 1,100)
+    x1 = np.linspace(-4, 4,100)
+    x2 = np.linspace(-4, 4,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Shubert()
+    objective=functions.Kean()
     y=objective.func(t)
     
     # mean and var for D=0 and D=1
@@ -202,7 +208,6 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     fig.colorbar(im6, ax=ax5)
     ax5.plot(X[:,0], X[:,1], 'ok',markersize=5, alpha=0.8)
     max_index = t[np.argwhere(y == np.amax(y)).flatten().tolist()]
-    print(np.max(y))
     ax5.plot(max_index[:,0],max_index[:,1], 'x',markersize=6,  color='red',alpha=0.8)
     ax5.plot(X[len(X)-1][0],X[len(X)-1][1], 'ok',markersize=6,  color='red',alpha=0.8)
     ax5.title.set_text('Function Plot')
