@@ -218,7 +218,7 @@ class Ackley:
             firstSum += c**2.0
             secondSum += np.cos(2.0*math.pi*c)
         n = float(self.input_dim)
-        return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) - np.exp(secondSum/n) + 20 + math.e)
+        return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) + np.exp(secondSum/n) - 20 - math.e)
 
 
         
@@ -238,13 +238,13 @@ class Ackley_6:
             firstSum += c**2.0
             secondSum += np.cos(2.0*math.pi*c)
         n = float(self.input_dim)
-        return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) - np.exp(secondSum/n) + 20 + math.e)
+        return np.squeeze(20.0*np.exp(-0.2*np.sqrt(firstSum/n)) + np.exp(secondSum/n) - 20 - math.e)
 
 
 class Levy_10:
     def __init__(self):
-        self.dim = 10
-        self.bounds={'x': (-2,2), 'y': (-2,2),'z': (-2,2),'a': (-2,2),'b':(-2,2),'c': (-2,2),'d': (-2,2),'e': (-2,2),'f': (-2,2),'g':(-2,2)}
+        self.dim = 40
+        self.bounds=[(-2,2)]*self.dim
         self.name='Levy_10'
   
     def func(self, coord):
@@ -252,10 +252,10 @@ class Levy_10:
             coord=coord[np.newaxis,:]
 
         first = 1 + (coord[:,0]- 1.0) / 4.0
-        last=1 + (coord[:,9]- 1.0) / 4.0
+        last=1 + (coord[:,self.dim-1]- 1.0) / 4.0
         constant= np.sin(np.pi * first) ** 2
         sum_val=0
-        for i in range(0,9):
+        for i in range(0,self.dim-1):
             w= 1 + (coord[:,i]- 1.0) / 4.0
             sum_val=sum_val+ (w - 1) ** 2 * (1 + 10 * np.sin(np.pi * w + 1) ** 2) + (last - 1) ** 2 * (1 + np.sin(2 * np.pi * w)**2)
         
@@ -264,7 +264,7 @@ class Levy_10:
 
 class Rastrigin:
     def __init__(self):
-        self.dim = 10
+        self.dim = 100
         self.bounds=[(-1,1)]*self.dim
         self.name='Rastrigin'
   

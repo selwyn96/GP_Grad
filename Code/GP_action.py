@@ -109,7 +109,7 @@ class GP_action:
                Grad_GP[i].set_hyper(self.ls,self.var)
                Grad_GP[i].fit(self.X[ur], self.Y_S[ur])
                
-       #   plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.X,self.Y,self.Noise,self.count) # Creating the Plot 
+        #  plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.X,self.Y,self.Noise,self.count) # Creating the Plot 
 
        #   gp_test= GaussianProcess(self.bounds,self.Noise,self.Noise_level,verbose=self.verbose)
        #   gp_test.set_hyper(self.ls,self.var)
@@ -134,6 +134,7 @@ class GP_action:
           finished_opt=time.time()
           elapse_opt=finished_opt-start_opt
           self.time_opt=np.hstack((self.time_opt,elapse_opt))
+      #    print(elapse_opt)
           
            # Saving new values of X, Y 
       #    x_val_ori=self.Xscaler.inverse_transform(np.reshape(x_val,(-1,self.dim)))

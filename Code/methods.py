@@ -65,7 +65,7 @@ class methods(object):
     def _GD_5(self):
         m=5 # number of local searches
     #    LR=2
-        max_search=1.07 # Maximum jump size
+        max_search=10 # Maximum jump size
         # LR*unit vector= candidate points from which to search
         LR=np.sort(np.random.uniform(0, max_search,size=50)) # For local point selection
         LR2=np.sort(np.random.uniform(0, max_search,size=10)) # For Global selection 
@@ -101,6 +101,7 @@ class methods(object):
                 X_TS=np.vstack((X_TS, self.X[cons_index[index]]))
                 Y_TS=np.append(Y_TS,self.Y_S[cons_index[index]])
                 new_val=self._TS_GD(X_TS,Y_TS)
+              #  new_val=self._random()
                 starting_point[index]=new_val
                 reset_counter[index]=1
                 self.obj.save_value(starting_point,reset_counter,last_UCB,max_value,index,X_TS,Y_TS,cons_index)
@@ -195,6 +196,7 @@ class methods(object):
             X_TS=np.vstack((X_TS, self.X[cons_index[val_to_continue]]))
             Y_TS=np.append(Y_TS,self.Y_S[cons_index[val_to_continue]])
             new_val=self._TS_GD(X_TS,Y_TS)
+          #  new_val=self._random()
             starting_point[val_to_continue]=new_val
             reset_counter[val_to_continue]=1
             self.obj.save_grad(LR[index_j]*mean_test[int(index_i)])
@@ -210,7 +212,7 @@ class methods(object):
     def _GD(self):
         m=1# number of local searches
     #    LR=2
-        max_search=1.07 # Maximum jump size
+        max_search=10 # Maximum jump size
         # LR*unit vector= candidate points from which to search
         LR=np.sort(np.random.uniform(0, max_search,size=50)) # For local point selection
         LR2=np.sort(np.random.uniform(0, max_search,size=10)) # For Global selection 
@@ -246,6 +248,7 @@ class methods(object):
                 X_TS=np.vstack((X_TS, self.X[cons_index[index]]))
                 Y_TS=np.append(Y_TS,self.Y_S[cons_index[index]])
                 new_val=self._TS_GD(X_TS,Y_TS)
+              #  new_val=self._random()
                 starting_point[index]=new_val
                 reset_counter[index]=1
                 self.obj.save_value(starting_point,reset_counter,last_UCB,max_value,index,X_TS,Y_TS,cons_index)
@@ -340,6 +343,7 @@ class methods(object):
             X_TS=np.vstack((X_TS, self.X[cons_index[val_to_continue]]))
             Y_TS=np.append(Y_TS,self.Y_S[cons_index[val_to_continue]])
             new_val=self._TS_GD(X_TS,Y_TS)
+        #    new_val=self._random()
             starting_point[val_to_continue]=new_val
             reset_counter[val_to_continue]=1
             self.obj.save_grad(LR[index_j]*mean_test[int(index_i)])

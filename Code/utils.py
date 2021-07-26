@@ -145,11 +145,11 @@ def plot_posterior_grad(bounds,gp_0,gp_1,X,Y,noise_val,count):
     else:
       noise='Noisless'
   #  creating meshgrid to plot over entire range
-    x1 = np.linspace(-4, 4,100)
-    x2 = np.linspace(-4, 4,100)
+    x1 = np.linspace(-3, 1,100)
+    x2 = np.linspace(-3, 1,100)
     X1, X2  = np.meshgrid(x1,x2)
     t= np.vstack((X1.flatten(), X2.flatten())).T
-    objective=functions.Kean()
+    objective=functions.Shubert()
     y=objective.func(t)
     
     # mean and var for D=0 and D=1
