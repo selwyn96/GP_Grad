@@ -3,11 +3,13 @@ import torch
 from sklearn.preprocessing import MinMaxScaler
 from methods import methods
 import numpy as np
-from  utils import optimise_acq_func,acq_maximize,plot_posterior,plot_posterior_grad,plot_posterior_1d,plot_posterior_grad_1d,Momentum
+from  utils import optimise_acq_func,acq_maximize,plot_posterior,plot_posterior_grad,plot_posterior_1d,plot_posterior_grad_1d,Momentum,Turbo
 from Gaussian import GaussianProcess
 from Gaussian_grad import GaussianProcess_grad
 from methods import methods
 import time
+from sklearn.metrics.pairwise import euclidean_distances
+from numpy import linalg as LA
 
 
 def unique_rows(a):
@@ -41,6 +43,7 @@ class GP_action:
           self.X_S=None   # scaled output (The input  is scaled [0,1] in all D) 
           self.Y_S=None   # scaled inpout ( output is scaled as  (Y - mu) / sigma )
           self.obj=None
+          self.turbo=None
           self.bounds=bounds # original bounds
           self.dim = len(bounds)
           self.bounds_s=np.array([np.zeros(self.dim), np.ones(self.dim)]).T  # scaled bounds
@@ -59,26 +62,41 @@ class GP_action:
           self.Noise_level=Noise_level
           self.Noise_S=Noise_level
           self.improv_counter=0
+          self.max=0
           
+     def initiate(self,X,initial_draws):
+          self.X = np.asarray(X[0])
+          self.X_S = self.Xscaler.transform(X[0].reshape((1, -1)))
+          y_init=self.func(X[0])
+          self.Y = np.asarray(y_init)
+          for i in range (1,initial_draws):
+               self.X=np.vstack((self.X, X[i]))
+               x_s=self.Xscaler.transform(X[i].reshape((1, -1)))
+               self.X_S = np.vstack((self.X_S, x_s))
+               self.Y = np.append(self.Y, self.func(X[i]))
+          self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
+          self.max=np.max(self.Y)
+          print(f"{self.count}) Start Val: {self.max:.4}" )
+          sys.stdout.flush()
 
       
      
-     def initiate(self, seed,n_random_draws=5):
+     # def initiate(self, seed,n_random_draws=5):
 
-          ''' This function samples the intial 2-3 points'''
-          np.random.seed(seed)
-          X_test= np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( n_random_draws, self.bounds.shape[0]))
-          self.X = np.asarray(X_test[0])
-          self.X_S = self.Xscaler.transform(X_test[0].reshape((1, -1)))
-          y_init=self.func(X_test[0])
-          self.Y = np.asarray(y_init)
-          for i in range (1,n_random_draws):
-               self.X=np.vstack((self.X, X_test[i]))
-               x_s=self.Xscaler.transform(X_test[i].reshape((1, -1)))
-               self.X_S = np.vstack((self.X_S, x_s))
-               self.Y = np.append(self.Y, self.func(X_test[i]))
-          self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
-          self.Noise_S=self.Noise_level/np.std(self.Y)
+     #      ''' This function samples the intial 2-3 points'''
+     #      np.random.seed(seed)
+     #      X_test= np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],size=( n_random_draws, self.bounds.shape[0]))
+     #      self.X = np.asarray(X_test[0])
+     #      self.X_S = self.Xscaler.transform(X_test[0].reshape((1, -1)))
+     #      y_init=self.func(X_test[0])
+     #      self.Y = np.asarray(y_init)
+     #      for i in range (1,n_random_draws):
+     #           self.X=np.vstack((self.X, X_test[i]))
+     #           x_s=self.Xscaler.transform(X_test[i].reshape((1, -1)))
+     #           self.X_S = np.vstack((self.X_S, x_s))
+     #           self.Y = np.append(self.Y, self.func(X_test[i]))
+     #      self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
+     #      self.Noise_S=self.Noise_level/np.std(self.Y)
 
      def find_kernel(self):
           gp_test=GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose) 
@@ -90,16 +108,38 @@ class GP_action:
           return(var,ls) 
               
      def sample_new_value(self):
+          if(self.count==0):  # creating object that saves the momentum values
+               self.obj=Momentum()  
+               self.turbo=Turbo()
+
+          X=self.X
+          Y=self.Y_S
+          if(self.count > 0):
+               previos_value,starting_point,reset_counter,maxs,last_m,X_TS,Y_TS,cons_index,succcount,failcount,max_search=self.turbo.return_value() 
+               if(self.func(previos_value)<self.func(starting_point)):
+                    center=starting_point
+               else:
+                    center=previos_value
+               X=center
+               Y=(self.func(center)-np.mean(self.Y))/np.std(self.Y)
+               for i in range(0,len(self.Y)):
+                    Euc_dist=np.sqrt(np.sum(np.power((self.X[i]-center),2)))
+
+                    if(Euc_dist<max(max_search,15) and Euc_dist!=0):
+                         X = np.vstack((X, self.X[i]))
+                         Y = np.append(Y, self.Y_S[i])
+               X=np.atleast_2d(X)
+               Y=np.atleast_1d(Y)
      
           self.gp=GaussianProcess(self.bounds,self.Noise, self.Noise_level,verbose=self.verbose) # Acq function uses this GP to estimate next point to smaple 
-          ur = unique_rows(self.X)
-          self.gp.fit(self.X[ur], self.Y_S[ur])
+          ur = unique_rows(X)
+          self.gp.fit(X[ur], Y[ur])
           if  len(self.Y)%(3)==0:
                self.gp.optimise()
           self.var,self.ls=self.gp.Hyper()
         #  if self.count==0:
         #      self.var,self.ls= self.find_kernel() # If we need to find the approx kernel of the function
-          print(self.var,self.ls)
+       #   print(self.var,self.ls)
           gp_grad_0=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level,D=0,verbose=self.verbose) # Create a GP for derivative in D=0
           gp_grad_1=GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level ,D=1,verbose=self.verbose) # Create a GP for derivative in D=1
           
@@ -107,7 +147,7 @@ class GP_action:
           for i in range(0,self.dim):
                Grad_GP.append(GaussianProcess_grad(self.bounds,self.Noise, self.Noise_level,D=i,verbose=self.verbose))
                Grad_GP[i].set_hyper(self.ls,self.var)
-               Grad_GP[i].fit(self.X[ur], self.Y_S[ur])
+               Grad_GP[i].fit(X[ur],Y[ur])
                
         #  plot_posterior_grad(self.bounds,gp_grad_0,gp_grad_1,self.X,self.Y,self.Noise,self.count) # Creating the Plot 
 
@@ -117,15 +157,13 @@ class GP_action:
        #   plot_posterior_1d(self.bounds,gp_test,self.X, self.Y_S,self.Noise,self.count)
         #  plot_posterior_grad_1d(self.bounds,gp_grad_0,self.X, self.Y_S,self.Noise,self.count)
           
-          if(self.count==0):  # creating object that saves the momentum values
-               self.obj=Momentum()  
 
           y_max=max(self.Y_S)
           no_val_samp=len(self.Y) # For gpucb Beta 
           start_opt=time.time()
           # X_val is the new point that is sampled 
-          if(self.acq_name=='random' or self.acq_name=='TS' or self.acq_name=='MES' or self.acq_name=='GD' or self.acq_name=='GD_5'):
-               objects =methods(self.acq_name,self.bounds,self.gp,Grad_GP,self.obj,self.Y,self.Y_S,y_max,self.X,self.count,self.improv_counter)
+          if(self.acq_name=='random' or self.acq_name=='TS' or self.acq_name=='MES' or self.acq_name=='GD' or self.acq_name=='GD_5' or self.acq_name=='GD_Turbo'):
+               objects =methods(self.acq_name,self.bounds,self.gp,Grad_GP,self.obj,self.turbo,self.Y,self.Y_S,y_max,self.X,self.count,self.improv_counter)
                x_val=objects.method_val()
           else:
                x_val= optimise_acq_func(model=self.gp,bounds=self.bounds,y_max=y_max,sample_count=no_val_samp,acq_name=self.acq_name)
@@ -140,11 +178,6 @@ class GP_action:
       #    x_val_ori=self.Xscaler.inverse_transform(np.reshape(x_val,(-1,self.dim)))
 
           x_val_ori=x_val
-          if(self.func(x_val_ori)-np.max(self.Y)>(0.01*np.max(self.Y)) or self.improv_counter>=10):
-               self.improv_counter=0
-          else:
-               self.improv_counter=self.improv_counter+1
-         
           y_actual= self.func(x_val_ori) 
           self.X_S = np.vstack((self.X_S, x_val.reshape((1, -1))))
           self.X=np.vstack((self.X, x_val_ori))
@@ -152,7 +185,10 @@ class GP_action:
           self.Y_S=(self.Y-np.mean(self.Y))/np.std(self.Y)
           self.Noise_S=self.Noise_level/np.std(self.Y)
           self.count=self.count+1
-          print(self.count)
+          if(np.max(self.Y)>self.max):
+               self.max=np.max(self.Y)
+             #  print(f"{self.count}) New best: {self.max:.4}" )
+             #  sys.stdout.flush()
 
           return x_val,y_actual
 

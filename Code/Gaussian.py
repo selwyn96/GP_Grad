@@ -110,7 +110,7 @@ class GaussianProcess(object):
         opts ={'maxiter':200,'maxfun':200,'disp': False}
 
 
-        bounds=np.asarray([[1e-3,1],[0.05,1.5]]) # bounds on Lenghtscale and keranl Variance
+        bounds=np.asarray([[1e-3,2],[0.05,20]]) # bounds on Lenghtscale and keranl Variance
 
         init_theta = np.random.uniform(bounds[:, 0], bounds[:, 1],size=(10, 2))
         logllk=np.array([])
@@ -123,8 +123,6 @@ class GaussianProcess(object):
         res = minimize(lambda x: -self.log_llk(self.X,self.Y,hyper_values=x),x0,
                                    bounds=bounds,method="L-BFGS-B",options=opts)#L-BFGS-B
         
-        if self.verbose:
-            print("estimated lengthscale and variance",res.x)
             
         return res.x  
    

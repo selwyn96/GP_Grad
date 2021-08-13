@@ -224,9 +224,9 @@ class Ackley:
         
 class Ackley_6:
     def __init__(self):
-        self.input_dim=20
+        self.input_dim=10
      #   self.bounds={'x': (-32.768, 32.768), 'y': (-32.768, 32.768),'z': (-32.768, 32.768),'a': (-32.768, 32.768),'b': (-32.768, 32.768),'c': (-32.768, 32.768)}
-        self.bounds=[(-1,3)]*self.input_dim
+        self.bounds=[(-5,10)]*self.input_dim
         self.name='Ackley_6'
     def func(self,coord):
         if(coord.ndim==1):
@@ -243,8 +243,8 @@ class Ackley_6:
 
 class Levy_10:
     def __init__(self):
-        self.dim = 40
-        self.bounds=[(-2,2)]*self.dim
+        self.dim = 20
+        self.bounds=[(-5,10)]*self.dim
         self.name='Levy_10'
   
     def func(self, coord):
@@ -264,8 +264,8 @@ class Levy_10:
 
 class Rastrigin:
     def __init__(self):
-        self.dim = 100
-        self.bounds=[(-1,1)]*self.dim
+        self.dim = 20
+        self.bounds=[(-3,4)]*self.dim
         self.name='Rastrigin'
   
     def func(self, coord):

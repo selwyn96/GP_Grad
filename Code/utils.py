@@ -79,6 +79,42 @@ class Momentum(object):
     def return_value(self):
       return(self.last_seen_val,self.reset_counter,self.UCB,self.max_val,self.last_m,self.X_TS,self.Y_TS,self.index)
 
+
+class Turbo(object):
+    def __init__ (self):
+      self.prev_val=[]
+      self.last_seen_val=[]
+      self.reset_counter=[]
+      self.grad=0
+      self.max_val=0
+      self.last_m=0
+      self.failcount=0
+      self.succcount=0
+      self.max_search=1
+      self.X_TS=[]
+      self.index=[]
+      self.Y_TS=[]
+
+    def save_grad(self,grad):
+      self.grad=grad
+    def return_grad(self):
+      return(self.grad)
+
+    def save_value(self,prev_val,value,counter,max_val,last_m,X_TS,Y_TS,index,succcount,failcount,max_search):
+      self.last_seen_val=value
+      self.reset_counter=counter
+      self.max_val=max_val
+      self.last_m=last_m
+      self.X_TS=X_TS
+      self.Y_TS=Y_TS
+      self.index=index
+      self.failcount=failcount
+      self.succcount=succcount
+      self.max_search=max_search
+      self.prev_val=prev_val
+    def return_value(self):
+      return(self.prev_val,self.last_seen_val,self.reset_counter,self.max_val,self.last_m,self.X_TS,self.Y_TS,self.index,self.succcount,self.failcount,self.max_search)
+
   
      
       
